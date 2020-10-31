@@ -1,0 +1,4 @@
+#require "ounit2";;
+#directory "_build";;
+#load "lexer.cmo";;
+#load "parser.cmo";;
