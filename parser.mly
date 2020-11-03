@@ -35,7 +35,8 @@ open Ast
 %start <Ast.expr> prog
 
 %%
-	
+prog: expr EOF                           { $1 }
+
 expr:
 	| x = ID { Var x }
 	| i = INT { Int i }
