@@ -28,7 +28,6 @@ open Ast
 %token COMMA
 %token CONS
 %token DOT
-%token COLON
 %token QUOTE
 %token IF
 %token THEN
@@ -55,19 +54,15 @@ open Ast
 %start <Ast.expr> prog
 
 %%
-assoc_list:
-  | (* empty *) { [] }
-  | k = expr; COLON; v = expr; COMMA; tail = expr_list
-    { (k, v) :: tail }
 
 expr_list:
-  | (* empty *) { [] }
-  | e = expr; COMMA; tail = expr_list
-    { e :: tail }
+| { [] }
+| e = expr; COMMA; tail = expr_list { e :: tail }
 
 prog: expr EOF { $1 }
 
 expr:
+  | QUOTE; s = STRING; QUOTE { String s }
 	| x = STRING { Var x }
 	| i = INT { Int i }
 	| f = FLOAT { Float f }
@@ -86,15 +81,14 @@ expr:
 	| e1 = expr; LT; e2 = expr { Binop (LT, e1, e2) } 
 	| e1 = expr; GTE; e2 = expr { Binop (GTE, e1, e2) } 
 	| e1 = expr; LTE; e2 = expr { Binop (LTE, e1, e2) } 
-	| e1 = expr; AND; e2 = expr { Binop (And, e1, e2) } 
-	| e1 = expr; OR; e2 = expr { Binop (Or, e1, e2) } 
-	| NOT; e = expr { Uniop (Not, e) } 
-	| LBRACK; contents = expr_list; RBRACK { Assoc contents }
-	| LBRACK; contents = assoc_list; RBRACK { List contents }
-	| LPAREN; contents = tuple; RPAREN { TODO }
-	| e1 = expr; CONS; e2 = expr { TODO }
-	| IF; e1 = expr; THEN; e2 = expr; ELSE; e3 = expr { TODO }
-	| LET; e1 = expr; IN; e2 = expr { TODO }
-	| FUN; x1 = ID; PASSTO; e = expr { TODO }
+	| e1 = expr; AND; e2 = expr { Binop (AND, e1, e2) } 
+	| e1 = expr; OR; e2 = expr { Binop (OR, e1, e2) } 
+	| NOT; e = expr { Uniop (NOT, e) } 
+	| LBRACK; contents = expr_list; RBRACK { List contents }
+	| e1 = expr; CONS; e2 = expr { Binop (CONS, e1, e2) }
+	| IF; e1 = expr; THEN; e2 = expr; ELSE; e3 = expr { If (e1, e2, e3) }
+	| LET; e1 = expr; IN; e2 = expr { Let (e1, e2) }
+	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
 	| LPAREN; e=expr; RPAREN { e } 
+	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
 	;

@@ -2,11 +2,11 @@
 open Parser
 }
 
-let white = [' ' '\t']+
+let white = [' ' '\t' '\n']+
 let digit = ['0'-'9']
-let float = digit* '.' digit+
+let float = digit+ '.' digit+
 let int = digit+
-let chars = ['a'-'z' 'A'-'Z' '_' '\'']
+let chars = ['a'-'z' 'A'-'Z' '_']
 let string = chars+
 
 rule read = 
@@ -14,6 +14,7 @@ rule read =
   | white { read lexbuf }
   | int { INT (int_of_string (Lexing.lexeme lexbuf)) }
   | float { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
+  | string { STRING (Lexing.lexeme lexbuf) }
   | "(" { LPAREN }
   | ")" { RPAREN }
   | "+" { PLUS }
@@ -36,7 +37,6 @@ rule read =
   | "," { COMMA }
   | "::" { CONS }
   | "." { DOT }
-  | ":" { COLON }
   | "\"" { QUOTE }
   | "if" { IF }
   | "then" { THEN }
@@ -47,4 +47,3 @@ rule read =
   | "true" { TRUE }
   | "false" { FALSE }
   | eof { EOF; }
-  | string { STRING (Lexing.lexeme lexbuf) }

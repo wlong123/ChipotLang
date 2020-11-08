@@ -11,3 +11,4 @@ let rec eval = function
   | Int i1, Int i2 -> Int (i1 + i2)
   | _ -> raise Illegal
 end
+| _ -> failwith "UNIMPLEMENTED"
