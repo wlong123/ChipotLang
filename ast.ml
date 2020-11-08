@@ -10,12 +10,18 @@ type op =
   | GT
   | LTE
   | GTE
+  | And
+  | Or
+  | Not
 
 type expr = 
   | Var of string
   | Int of int
   | Float of float
+  | Bool of bool
+  | Uniop of op * expr
   | Binop of op * expr * expr
+  | TODO
 
 let string_of_binop = function
   | Add -> "Add"

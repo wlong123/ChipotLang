@@ -6,8 +6,8 @@ let white = [' ' '\t']+
 let digit = ['0'-'9']
 let float = digit* '.' digit+
 let int = digit+
-let letter = ['a'-'z' 'A'-'Z']
-let id = letter+
+let chars = ['a'-'z' 'A'-'Z' '_' '\'']
+let string = chars+
 
 rule read = 
   parse
@@ -27,5 +27,24 @@ rule read =
   | "<" { LT }
   | ">=" { GTE }
   | "<=" { LTE }
-  | id { ID (Lexing.lexeme lexbuf) }
+  | "&" { AND }
+  | "|" { OR  }
+  | "~" { NOT }
+  | "->" { PASSTO }
+  | "[" { LBRACK }
+  | "]" { RBRACK }
+  | "," { COMMA }
+  | "::" { CONS }
+  | "." { DOT }
+  | ":" { COLON }
+  | "\"" { QUOTE }
+  | "if" { IF }
+  | "then" { THEN }
+  | "else" { ELSE }
+  | "fun" { FUN }
+  | "let" { LET }
+  | "in" { IN }
+  | "true" { TRUE }
+  | "false" { FALSE }
   | eof { EOF; }
+  | string { STRING (Lexing.lexeme lexbuf) }
