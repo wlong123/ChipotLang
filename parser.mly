@@ -83,7 +83,7 @@ expr:
 	| e1 = expr; LTE; e2 = expr { Binop (LTE, e1, e2) } 
 	| e1 = expr; AND; e2 = expr { Binop (AND, e1, e2) } 
 	| e1 = expr; OR; e2 = expr { Binop (OR, e1, e2) } 
-	| NOT; e = expr { Uniop (NOT, e) } 
+	| NOT; e = expr { Unop (NOT, e) } 
 	| LBRACK; contents = expr_list; RBRACK { List contents }
 	| e1 = expr; CONS; e2 = expr { Binop (CONS, e1, e2) }
 	| IF; e1 = expr; THEN; e2 = expr; ELSE; e3 = expr { If (e1, e2, e3) }

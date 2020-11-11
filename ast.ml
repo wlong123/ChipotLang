@@ -1,4 +1,4 @@
-type op =
+type binop =
   | Add
   | Sub
   | Mul
@@ -12,9 +12,11 @@ type op =
   | GTE
   | AND
   | OR
-  | NOT
   | CONS
   | PROJ
+
+type unop =
+  | NOT
 
 type expr = 
   | Var of string
@@ -22,14 +24,14 @@ type expr =
   | Float of float
   | Bool of bool
   | String of string
-  | Uniop of op * expr
-  | Binop of op * expr * expr
+  | Unop of unop * expr
+  | Binop of binop * expr * expr
   | If of expr * expr * expr
   | Let of expr * expr
   | Fun of string * expr
   | List of expr list
 
-let string_of_op = function
+let string_of_binop = function
   | Add -> "Add"
   | Sub -> "Sub"
   | Mul -> "Mul"
@@ -43,9 +45,11 @@ let string_of_op = function
   | GTE -> "GTE"
   | AND -> "AND"
   | OR -> "OR"
-  | NOT -> "NOT"
   | CONS -> "CONS"
   | PROJ -> "PROJ"
+
+let string_of_unop = function
+  | NOT -> "NOT"
 
 let rec string_of_expr = function
   | Var x -> "Var " ^ x
@@ -53,8 +57,8 @@ let rec string_of_expr = function
   | Float f -> "Float " ^ string_of_float f
   | Bool b -> "Bool " ^ string_of_bool b
   | String s -> "String " ^ s
-  | Uniop (op ,e) -> "Uniop (" ^ (string_of_op op) ^ ", " ^ (string_of_expr e)
-  | Binop (op, e1, e2) -> "Binop (" ^ (string_of_op op) ^ ", " ^
+  | Unop (op ,e) -> "Uniop (" ^ (string_of_unop op) ^ ", " ^ (string_of_expr e) ^ ")"
+  | Binop (op, e1, e2) -> "Binop (" ^ (string_of_binop op) ^ ", " ^
                           (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | If (e1, e2, e3) -> "If (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ", " ^ (string_of_expr e3) ^ ")"
   | Let (e1, e2) -> "Let (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"

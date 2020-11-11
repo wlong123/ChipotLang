@@ -14,7 +14,6 @@ rule read =
   | white { read lexbuf }
   | int { INT (int_of_string (Lexing.lexeme lexbuf)) }
   | float { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
-  | string { STRING (Lexing.lexeme lexbuf) }
   | "(" { LPAREN }
   | ")" { RPAREN }
   | "+" { PLUS }
@@ -46,4 +45,5 @@ rule read =
   | "in" { IN }
   | "true" { TRUE }
   | "false" { FALSE }
+  | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }
