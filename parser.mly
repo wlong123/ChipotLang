@@ -14,6 +14,7 @@ open Ast
 %token OVER
 %token MOD
 %token TOTHEPOWER
+%token NOTEQUALS
 %token EQUALS
 %token GT
 %token LT
@@ -32,6 +33,7 @@ open Ast
 %token IF
 %token THEN
 %token ELSE
+%token CASE
 %token FUN
 %token LET
 %token IN
@@ -40,6 +42,7 @@ open Ast
 %token EOF
 
 %nonassoc EQUALS
+%nonassoc NOTEQUALS
 %nonassoc GT
 %nonassoc LT
 %nonassoc GTE
@@ -61,6 +64,7 @@ open Ast
 
 expr_list:
 | { [] }
+| e = expr; RBRACK { e :: [] }
 | e = expr; COMMA; tail = expr_list { e :: tail }
 
 prog: expr EOF { $1 }
@@ -81,6 +85,7 @@ expr:
 	| e1 = expr; OVER; e2 = expr { Binop (Div, e1, e2) } 
 	| e1 = expr; MOD; e2 = expr { Binop (Mod, e1, e2) } 
 	| e1 = expr; TOTHEPOWER; e2 = expr { Binop (Pow, e1, e2) } 
+	| e1 = expr; NOTEQUALS; e2 = expr { Binop (Neq, e1, e2) } 
 	| e1 = expr; EQUALS; e2 = expr { Binop (Eq, e1, e2) } 
 	| e1 = expr; GT; e2 = expr { Binop (GT, e1, e2) } 
 	| e1 = expr; LT; e2 = expr { Binop (LT, e1, e2) } 
@@ -89,13 +94,12 @@ expr:
 	| e1 = expr; AND; e2 = expr { Binop (AND, e1, e2) } 
 	| e1 = expr; OR; e2 = expr { Binop (OR, e1, e2) } 
 	| NOT; e = expr { Unop (NOT, e) } 
-	| LBRACK; contents = expr_list; RBRACK { List contents }
+	| LBRACK; contents = expr_list { List contents }
 	| e1 = expr; CONS; e2 = expr { Binop (CONS, e1, e2) }
-	| IF; e1 = expr; THEN; e2 = expr; ELSE; e3 = expr { If (e1, e2, e3) }
+	| IF; e1 = expr; THEN; CASE; e2 = expr; CASE; e3 = expr { If (e1, e2, e3) }
 	| LET; e1 = expr; IN; e2 = expr { Let (e1, e2) }
 	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
 	| e1 = expr; e2 = expr { App (e1, e2) }
-	| LPAREN; e1 = expr; RPAREN; e2 = expr { App (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
 	;

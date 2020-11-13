@@ -1,7 +1,9 @@
 open Ast
 
 let () =
-  let file = open_in ("test") in
+  print_endline "Enter name of file to test. (e.g. test0x.guac, where x is 0, 1, or 2)";
+  print_string ">> ";
+  let file = open_in (read_line ()) in
   let lexbuf = Lexing.from_channel file in
   let e =
     try Parser.prog Lexer.read lexbuf

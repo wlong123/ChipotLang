@@ -5,6 +5,7 @@ type binop =
   | Div
   | Mod
   | Pow
+  | Neq
   | Eq
   | LT
   | GT
@@ -39,6 +40,7 @@ let string_of_binop = function
   | Div -> "Div"
   | Mod -> "Mod"
   | Pow -> "Pow"  
+  | Neq -> "Neq"
   | Eq -> "Eq"
   | LT -> "LT"
   | GT -> "GT"

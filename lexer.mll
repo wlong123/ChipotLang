@@ -6,12 +6,13 @@ let white = [' ' '\t' '\n']+
 let digit = ['0'-'9']
 let float = digit+ '.' digit+
 let int = digit+
-let chars = ['a'-'z' 'A'-'Z' '_']
-let string = chars+
+let comment = "<<" ['a'-'z' 'A'-'Z' '0'-'9' ''' '_' ' ' '\t' '\n' ',' ';' '.']* ">>"
+let string = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' ''' '_']* 
 
 rule read = 
   parse
   | white { read lexbuf }
+  | comment { read lexbuf }
   | int { INT (int_of_string (Lexing.lexeme lexbuf)) }
   | float { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
   | "(" { LPAREN }
@@ -23,14 +24,15 @@ rule read =
   | "%" { MOD }
   | "^" { TOTHEPOWER }
   | "=" { EQUALS }
+  | "!=" { NOTEQUALS }
   | ">" { GT }
   | "<" { LT }
   | ">=" { GTE }
   | "<=" { LTE }
-  | "&" { AND }
-  | "|" { OR  }
-  | "~" { NOT }
-  | "->" { PASSTO }
+  | "and" { AND }
+  | "or" { OR  }
+  | "not" { NOT }
+  | "=>" { PASSTO }
   | "[" { LBRACK }
   | "]" { RBRACK }
   | "," { COMMA }
@@ -39,9 +41,10 @@ rule read =
   | "\"" { QUOTE }
   | "if" { IF }
   | "then" { THEN }
+  | "|" { CASE }
   | "else" { ELSE }
   | "fun" { FUN }
-  | "let" { LET }
+  | "def" { LET }
   | "in" { IN }
   | "true" { TRUE }
   | "false" { FALSE }
