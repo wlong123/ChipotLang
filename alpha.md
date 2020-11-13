@@ -1,10 +1,49 @@
-Blog Post
-We’re also asking you to put together a brief blog post for the whole class to read. This post can be as short as a few hundred words. It should be written for a general audience familiar with CS 4110-style material. You may include accompanying graphics if helpful. Your blog post should cover:
+# ChipotLang: An interpretted langauge for functional systems programming
+### Benjamin Posnick (bmp53), William Long (wl359)
 
-Vision: What are you trying to achieve? It’s fine to re-use text from your project report if helpful, but remember you are writing for a general audience, not the course staff!
+#### Vision
+We are envisioning an elegant language that draws heavily on the ideas of functional programming while providing constructs and support necessary for effective systems programming. The idea is that immutability will be embraced wherever possible, except in the case of shared memory accesses during concurrent operations. We aim to abstract out the idea of pointers as much as possible and provide synchronization primitives as built-in language features. We will aim for the highest performance reasonably achievable by an interpretted language (recognizing that compiled langauges are generally faster). Ultimately, we seek to bridge the gap between functional and systems programming.
 
-Status: What’s the status of your current prototype? Showing some test cases or a screenshot might be helpful.
+#### Status
+Our current prototype supports the following langauge constructs
+- Primitive data types (integers, floats, strings, booleans
+- Arithmetic (addition, subtraction, multiplicaiton, division, modulo, exponentiation, inequalities, and, or, not)
+- Lists and n-tuples
+- Variables and let statements
+- If-then-else statements
+- Anonymous functions as values
+- Call-by-value function application
+- Recursion
 
-Next steps: What do you plan to do next?
+Here are a few sample ChipotLang programs:
+##### test01.guac
+```ocaml
+<< recursive fibonacci numbers >>
+let fib = fun n ->
+  if n <= 1 then n
+  else (fib (n - 1)) + (fib (n - 2)) in
+fib 10
 
-You should format your blog post in Jekyll-flavored Markdown and submit a Zip file named blog.zip on CMS that contains a file alpha.md with your blog post, along with any other supporting files (e.g., images).
+==> Parsed Input: Let (Binop (Eq, Var fib, Fun (n -> If (Binop (LTE, Var n, Int 1), Var n,
+Binop (Add, App (Var fib, Binop (Sub, Var n, Int 1)),
+App (Var fib, Binop (Sub, Var n, Int 2)))))), App (Var fib, Int 12))
+==> Output: Int 144
+```
+
+##### test02.guac
+```ocaml
+<< mutually recursive functions for testing parity of natural numbers >>
+let is_even = fun n ->
+  if n = 0 then true
+  else is_odd (n - 1) in
+let is_odd = fun n ->
+  if n = 0 then false
+  else is_even (n - 1) in
+[is_odd 7, is_even 7,]
+
+==> Parsed Input: Let (Binop (Eq, Var is_even, Fun (n -> If (Binop (Eq, Var n, Int 0), Bool true,
+App (Var is_odd, Binop (Sub, Var n, Int 1))))), Let (Binop (Eq, Var is_odd,
+Fun (n -> If (Binop (Eq, Var n, Int 0), Bool false, App (Var is_even, Binop (Sub, Var n, Int 1))))),
+List (App (Var is_odd, Int 7), List (App (Var is_even, Int 7), List ([])))))
+==> Output: List (Bool true, List (Bool false, List ([])))
+```
