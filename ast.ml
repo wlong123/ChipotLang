@@ -30,6 +30,7 @@ type expr =
   | Let of expr * expr
   | Fun of string * expr
   | List of expr list
+  | App of expr * expr
 
 let string_of_binop = function
   | Add -> "Add"
@@ -65,3 +66,4 @@ let rec string_of_expr = function
   | Fun (id, e) -> "Fun (" ^ id ^ " -> " ^ (string_of_expr e) ^ ")"
   | List [] -> "List ([])"
   | List (h::t) -> "List (" ^ (string_of_expr h) ^ ", " ^ (string_of_expr (List t))  ^ ")"
+  | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"

@@ -44,6 +44,10 @@ open Ast
 %nonassoc LT
 %nonassoc GTE
 %nonassoc LTE
+%nonassoc LET
+%nonassoc IN
+%nonassoc IF
+%nonassoc ELSE
 %left PLUS
 %left MINUS
 %left TIMES
@@ -72,6 +76,7 @@ expr:
 	| FALSE { Bool false }
 	| e1 = expr; PLUS; e2 = expr { Binop (Add, e1, e2) }
 	| e1 = expr; MINUS; e2 = expr { Binop (Sub, e1, e2) } 
+	| s = STRING; MINUS; e2 = expr { Binop (Sub, Var s, e2) } 
 	| e1 = expr; TIMES; e2 = expr { Binop (Mul, e1, e2) } 
 	| e1 = expr; OVER; e2 = expr { Binop (Div, e1, e2) } 
 	| e1 = expr; MOD; e2 = expr { Binop (Mod, e1, e2) } 
@@ -89,6 +94,8 @@ expr:
 	| IF; e1 = expr; THEN; e2 = expr; ELSE; e3 = expr { If (e1, e2, e3) }
 	| LET; e1 = expr; IN; e2 = expr { Let (e1, e2) }
 	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
+	| s = STRING; e = expr { App (Var s, e) }
+	| LPAREN; e1 = expr; RPAREN; e2 = expr { App (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
 	;
