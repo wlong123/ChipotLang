@@ -46,7 +46,8 @@ def is_odd = fun n =>
 =====================
 * Parsed Input: Let (Binop (Eq, Var is_even, Fun (n -> If (Binop (Eq, Var n, Int 0), Bool true, App
 (Var is_odd, Binop (Sub, Var n, Int 1))))), Let (Binop (Eq, Var is_odd, Fun (n -> If (Binop (Eq, Var n, Int 0),
-Bool false, App (Var is_even, Binop (Sub, Var n, Int 1))))), List (App (Var is_odd, Int 7), List (App (Var is_even, Int 7), List ([])))))
+Bool false, App (Var is_even, Binop (Sub, Var n, Int 1))))), List (App (Var is_odd, Int 7),
+List (App (Var is_even, Int 7), List ([])))))
 * Output as AST: List (Bool true, List (Bool false, List ([])))
 * Pretty Printed Output: [true, false]
 ```
