@@ -27,7 +27,8 @@ fib 12
 ======
 * Parsed Input: Let (Binop (Eq, Var fib, Fun (n -> If (Binop (LTE, Var n, Int 1), Var n, Binop
 (Add, App (Var fib, Binop (Sub, Var n, Int 1)), App (Var fib, Binop (Sub, Var n, Int 2)))))), App (Var fib, Int 12))
-* Output: Int 144
+* Output as AST: Int 144
+* Pretty Printed Output: 144
 ```
 
 ##### test02.guac
@@ -46,8 +47,9 @@ def is_odd = fun n =>
 * Parsed Input: Let (Binop (Eq, Var is_even, Fun (n -> If (Binop (Eq, Var n, Int 0), Bool true, App
 (Var is_odd, Binop (Sub, Var n, Int 1))))), Let (Binop (Eq, Var is_odd, Fun (n -> If (Binop (Eq, Var n, Int 0),
 Bool false, App (Var is_even, Binop (Sub, Var n, Int 1))))), List (App (Var is_odd, Int 7), List (App (Var is_even, Int 7), List ([])))))
-* Output: List (Bool true, List (Bool false, List ([])))
+* Output as AST: List (Bool true, List (Bool false, List ([])))
+* Pretty Printed Output: [true, false]
 ```
 
 ### Next Steps
-Going forward, we plan to add synchronization primitives (e.g. locks, condition variables, semaphores) as well as support for additional built-in data types (e.g. records, dictionaries/maps). As mentioned earlier, it is likely that we will need to introduce some amount of imperative/mutability features to more easily allow for modeling of concurrency problems.
+Going forward, we plan to add synchronization primitives (e.g. locks, condition variables, semaphores), functionality for creating threads and forking processes, as well as support for a few additional data types (e.g. records, dictionaries/maps). As mentioned earlier, it is likely that we will need to introduce some amount of imperative/mutability features to more easily allow for modeling of concurrency problems.
