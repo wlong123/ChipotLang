@@ -22,7 +22,7 @@ Here are a few sample ChipotLang programs:
 let fib = fun n ->
   if n <= 1 then n
   else (fib (n - 1)) + (fib (n - 2)) in
-fib 10
+fib 12
 
 ==> Parsed Input: Let (Binop (Eq, Var fib, Fun (n -> If (Binop (LTE, Var n, Int 1), Var n,
 Binop (Add, App (Var fib, Binop (Sub, Var n, Int 1)),
