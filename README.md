@@ -21,5 +21,5 @@ use of a `rec` keyword as in OCaml, for example.)
 - `test02.guac` to run a program that determines whether 7 is an even or an odd
 number by calling both `is_odd` and `is_even` directly, storing their results in
 a list in the 0th and 1st indices, respectively. This program demonstrates
-that mutual recursion is possible in Chipotlang and that lists can hold the
+that mutual recursion is possible in ChipotLang and that lists can hold the
 result of evaluating an expression in a convenient and familiar syntax.
