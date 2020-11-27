@@ -43,7 +43,11 @@ open Ast
 %token KILL
 %token TID
 %token FORK
+%token JOIN
+%token JOINALL
 %token PRINT
+%token LOCK
+%token UNLOCK
 %token EOF
 
 %nonassoc EQUALS
@@ -106,6 +110,10 @@ expr:
 	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
 	| CTHREAD; e = expr { CThread e }
 	| KILL; e = expr { Kill e }
+	| LOCK; e = expr { Lock e }
+	| UNLOCK; e = expr { Unlock e }
+	| JOIN; e = expr { Join e }
+	| JOINALL { Joinall }
 	| PRINT; e = expr { Print e }
 	| e1 = expr; e2 = expr { App (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 

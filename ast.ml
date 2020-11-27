@@ -37,6 +37,10 @@ type expr =
   | Tid of Thread.t
   | Kill of expr
   | Print of expr
+  | Lock of expr
+  | Unlock of expr
+  | Join of expr
+  | Joinall
 
 let string_of_binop = function
   | Add -> "Add"
@@ -78,3 +82,7 @@ let rec string_of_expr = function
   | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
   | Kill e -> "Kill (" ^ (string_of_expr e) ^ ")"
   | Print e -> "Print (" ^ (string_of_expr e) ^ ")"
+  | Lock e -> "Lock (" ^ (string_of_expr e) ^ ")"
+  | Unlock e -> "Unlock (" ^ (string_of_expr e) ^ ")"
+  | Join e -> "Join (" ^ (string_of_expr e) ^ ")"
+  | Joinall -> "Joinall"

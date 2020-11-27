@@ -52,6 +52,10 @@ rule read =
   | "kill" { KILL }
   | "tid" { TID }
   | "fork" { FORK }
+  | "join" { JOIN }
+  | "joinall" { JOINALL }
   | "print" { PRINT }
+  | "lock" { LOCK }
+  | "unlock" { UNLOCK }
   | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }

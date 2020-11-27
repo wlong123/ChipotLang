@@ -11,6 +11,8 @@ exception UnboundThread
 
 type store = (string * expr) list
 
+let threads = ref [Thread.self ()]
+
 let rec add_var (s:store) (x:string) (v:expr) =
   match s with
   | [] -> [(x,v)]
@@ -21,16 +23,16 @@ let rec get_var s x =
   | [] -> raise UnboundVariable
   | (x',v')::t -> if x' = x then v' else get_var t x
 
-(* let rec add_var_to_thread (tid:tid) (s:store) (x:string) (v:expr) =
-  match s with
-  | [] -> raise UnboundThread
-  | (tid',sigma')::t -> if tid' = tid 
-  then (tid, (add_var sigma' x v))::t 
-  else (tid',sigma')::(add_var_to_thread tid t x v)
-
-let add_thread (new_tid:tid) (curr_tid:tid) (s:store) =
-  let s' = List.assoc curr_tid s in
-  (new_tid, s')::s *)
+let rec expr_to_string e =
+  match e with
+  | Int i -> string_of_int i
+  | Float f -> string_of_float f
+  | Bool b -> string_of_bool b
+  | String s -> s
+  | Fun _ -> "Function"
+  | List l -> "[" ^ (List.fold_left (fun x e -> x ^ (expr_to_string e) ^ ", ") "" l) ^ "]"
+  | Tid t -> "Thread " ^ (string_of_int (Thread.id t))
+  | _ -> "ABSTRACT"
 
 let eval_binop op e1 e2 =
   match op with
@@ -120,9 +122,9 @@ let eval_binop op e1 e2 =
 let rec eval' e s = 
   let tid = Thread.self () in
   (* print_string "Executing Thread: ";
-  print_int tid;
-  print_string (" " ^ (string_of_expr e));
-  print_newline (); *)
+     print_int tid;
+     print_string (" " ^ (string_of_expr e));
+     print_newline (); *)
   match e with
   | Var x -> eval' (get_var s x) s
   | Int i -> Int i
@@ -155,34 +157,31 @@ let rec eval' e s =
     end
   | Fun (x, e) -> Fun (x, e)
   | List [] -> List []
-  | List l -> List (List.map (fun e -> eval' e s) l)
+  | List l -> (List (List.map (fun e -> eval' e s) l))
   | App (e1, e2) -> begin
       match eval' e1 s with
-      | Fun (x, e) -> eval' e (add_var s x (eval' e2 s))
+      | Fun (x, e) -> eval' e (add_var s x (eval' e2 s)) 
       | _ -> raise InvalidApp
     end
   | CThread e -> begin
-    let t' = Thread.create (fun () -> eval' e s) () in
-    (* let tid' = Thread.id t' in *)
-    Thread.yield ();
-    Tid t'
-  end
+      let t' = Thread.create (fun () -> eval' e s) () in
+      threads := t' :: !threads;
+      Thread.yield ();
+      Tid t'
+    end
   | Tid t -> Tid t
   | Kill e -> begin
-    match eval' e s with
-    | Tid t -> Thread.kill t; Tid tid
-    | _ -> raise UnboundThread
-  end
-  | Print e -> begin
-    match eval' e s with
-    | Int i -> print_int i; Tid tid
-    | Float f -> print_float f; Tid tid
-    | Bool b -> print_string (string_of_bool b); Tid tid
-    | String s -> print_string s; Tid tid
-    | Fun _ -> print_string "Function"; Tid tid
-    (* | List l -> print_string (List.fold_left (fun x -> )) *)
-    | Tid t -> print_string ("Thread " ^ (string_of_int (Thread.id t))); Tid tid
-    | _ -> print_string "ABSTRACT"; Tid tid
-  end
+      match eval' e s with
+      | Tid t -> Thread.join t; Tid tid
+      | _ -> raise UnboundThread
+    end
+  | Print e -> eval' e s |> expr_to_string |> print_string; Tid tid
+  | Join e -> begin
+      match eval' e s with
+      | Tid t -> Thread.join t; Tid t
+      | _ -> failwith "Join requires thread ID"
+    end
+  | Joinall -> List.iter (fun t -> print_newline (); if Thread.id t <> Thread.id tid then Thread.join t else ()) !threads; print_newline (); print_string "DONE"; Tid tid
+  | _ -> failwith "Unimplemented"
 
 let eval e = eval' e []
