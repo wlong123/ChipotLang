@@ -1,4 +1,5 @@
 open Ast
+(* open Thread *)
 
 exception Illegal
 exception UnboundVariable
@@ -6,10 +7,11 @@ exception InvalidGuard
 exception InvalidUnopType
 exception InvalidBinopType
 exception InvalidApp
+exception UnboundThread
 
 type store = (string * expr) list
 
-let rec add_var s x v =
+let rec add_var (s:store) (x:string) (v:expr) =
   match s with
   | [] -> [(x,v)]
   | (x',v')::t -> if x' = x then (x,v)::t else (x',v')::(add_var t x v)
@@ -18,6 +20,17 @@ let rec get_var s x =
   match s with
   | [] -> raise UnboundVariable
   | (x',v')::t -> if x' = x then v' else get_var t x
+
+(* let rec add_var_to_thread (tid:tid) (s:store) (x:string) (v:expr) =
+  match s with
+  | [] -> raise UnboundThread
+  | (tid',sigma')::t -> if tid' = tid 
+  then (tid, (add_var sigma' x v))::t 
+  else (tid',sigma')::(add_var_to_thread tid t x v)
+
+let add_thread (new_tid:tid) (curr_tid:tid) (s:store) =
+  let s' = List.assoc curr_tid s in
+  (new_tid, s')::s *)
 
 let eval_binop op e1 e2 =
   match op with
@@ -105,6 +118,11 @@ let eval_binop op e1 e2 =
     end
 
 let rec eval' e s = 
+  let tid = Thread.self () in
+  (* print_string "Executing Thread: ";
+  print_int tid;
+  print_string (" " ^ (string_of_expr e));
+  print_newline (); *)
   match e with
   | Var x -> eval' (get_var s x) s
   | Int i -> Int i
@@ -143,5 +161,28 @@ let rec eval' e s =
       | Fun (x, e) -> eval' e (add_var s x (eval' e2 s))
       | _ -> raise InvalidApp
     end
+  | CThread e -> begin
+    let t' = Thread.create (fun () -> eval' e s) () in
+    (* let tid' = Thread.id t' in *)
+    Thread.yield ();
+    Tid t'
+  end
+  | Tid t -> Tid t
+  | Kill e -> begin
+    match eval' e s with
+    | Tid t -> Thread.kill t; Tid tid
+    | _ -> raise UnboundThread
+  end
+  | Print e -> begin
+    match eval' e s with
+    | Int i -> print_int i; Tid tid
+    | Float f -> print_float f; Tid tid
+    | Bool b -> print_string (string_of_bool b); Tid tid
+    | String s -> print_string s; Tid tid
+    | Fun _ -> print_string "Function"; Tid tid
+    (* | List l -> print_string (List.fold_left (fun x -> )) *)
+    | Tid t -> print_string ("Thread " ^ (string_of_int (Thread.id t))); Tid tid
+    | _ -> print_string "ABSTRACT"; Tid tid
+  end
 
 let eval e = eval' e []

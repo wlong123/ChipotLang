@@ -1,3 +1,4 @@
+open Thread
 type binop =
   | Add
   | Sub
@@ -32,6 +33,10 @@ type expr =
   | Fun of string * expr
   | List of expr list
   | App of expr * expr
+  | CThread of expr
+  | Tid of Thread.t
+  | Kill of expr
+  | Print of expr
 
 let string_of_binop = function
   | Add -> "Add"
@@ -69,3 +74,7 @@ let rec string_of_expr = function
   | List [] -> "List ([])"
   | List (h::t) -> "List (" ^ (string_of_expr h) ^ ", " ^ (string_of_expr (List t))  ^ ")"
   | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
+  | CThread e -> "Thread (" ^ (string_of_expr e) ^ ")"
+  | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
+  | Kill e -> "Kill (" ^ (string_of_expr e) ^ ")"
+  | Print e -> "Print (" ^ (string_of_expr e) ^ ")"

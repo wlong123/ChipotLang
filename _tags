@@ -1,1 +1,3 @@
-true: package(ounit2),use_menhir,explain
+true: package(ounit2),use_menhir,explain,thread
+<eval.ml> : thread
+<prog.{native,byte}> : use_unix,thread

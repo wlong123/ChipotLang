@@ -1,0 +1,4 @@
+def plus = fun x => x + 1 in
+def f = (fun x => f x) in
+def t1 = thread (f 1) in
+plus 1

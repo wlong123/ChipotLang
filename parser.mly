@@ -39,6 +39,11 @@ open Ast
 %token IN
 %token TRUE
 %token FALSE
+%token CTHREAD
+%token KILL
+%token TID
+%token FORK
+%token PRINT
 %token EOF
 
 %nonassoc EQUALS
@@ -99,6 +104,9 @@ expr:
 	| IF; e1 = expr; THEN; CASE; e2 = expr; CASE; e3 = expr { If (e1, e2, e3) }
 	| LET; e1 = expr; IN; e2 = expr { Let (e1, e2) }
 	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
+	| CTHREAD; e = expr { CThread e }
+	| KILL; e = expr { Kill e }
+	| PRINT; e = expr { Print e }
 	| e1 = expr; e2 = expr { App (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }

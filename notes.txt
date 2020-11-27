@@ -1,0 +1,21 @@
+Syntax for threads:
+
+e ...
+
+let x = thread f a (f : a' -> b') a : a' in
+...
+e'
+e -> e', sigma
+x_tid -> f a
+
+
+
+kill tid -> kills tid
+kill 0 -> kills main thread (kills entire program)
+kill -> kills current thread
+tid -> gives thread id of currently running thread
+
+join
+fork -> thread e'
+
+

@@ -1,4 +1,5 @@
 B _build
+B +threads
 PKG ounit2
 PKG Parser
 PKG Lexing

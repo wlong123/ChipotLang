@@ -48,5 +48,10 @@ rule read =
   | "in" { IN }
   | "true" { TRUE }
   | "false" { FALSE }
+  | "thread" { CTHREAD }
+  | "kill" { KILL }
+  | "tid" { TID }
+  | "fork" { FORK }
+  | "print" { PRINT }
   | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }
