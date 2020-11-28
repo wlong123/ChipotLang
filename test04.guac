@@ -1,10 +1,16 @@
 def x = ref 0 in
 def inc_x = fun y =>
   print "Start";
-  print !x;
-  x := !x + 1;
-  print "Start";
-  print !x
+  (
+    print (!x);
+    (
+      x := (!x) + 1;
+      (
+        print "End";
+        print (!x)
+      )
+    )
+  )
 in
 def t1 = thread (inc_x ()) in
 def t2 = thread (inc_x ()) in

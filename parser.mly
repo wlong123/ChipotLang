@@ -123,13 +123,13 @@ expr:
 	| UNLOCK; e = expr { Unlock e }
 	| JOIN; e = expr { Join e }
 	| JOINALL { Joinall }
-	| PRINT; e = expr { Print e }
 	| NONE { None }
 	| DEREF; e = expr { Deref e }
 	| CREATEREF; e = expr { CreateRef e }
 	| x = STRING; ASSIGN; e = expr { RefAssign (x, e) }
 	| e1 = expr; e2 = expr { App (e1, e2) }
-	| e1 = expr; SEQSEP; e2 = expr { Seq (e1, e2) }
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
+	| PRINT; e = expr { Print e }
+	| e1 = expr; SEQSEP; e2 = expr { Seq (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 
 	;
