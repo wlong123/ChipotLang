@@ -35,7 +35,7 @@ open Ast
 %token ELSE
 %token CASE
 %token FUN
-%token LET
+%token DEF
 %token IN
 %token TRUE
 %token FALSE
@@ -48,6 +48,11 @@ open Ast
 %token PRINT
 %token LOCK
 %token UNLOCK
+%token ASSIGN
+%token NONE
+%token DEREF
+%token SEQSEP
+%token CREATEREF
 %token EOF
 
 %nonassoc EQUALS
@@ -56,7 +61,7 @@ open Ast
 %nonassoc LT
 %nonassoc GTE
 %nonassoc LTE
-%nonassoc LET
+%nonassoc DEF
 %nonassoc IN
 %nonassoc IF
 %nonassoc ELSE
@@ -66,6 +71,7 @@ open Ast
 %left OVER  
 %left MOD  
 %left TOTHEPOWER  
+%nonassoc DEREF
 
 %start <Ast.expr> prog
 
@@ -106,7 +112,7 @@ expr:
 	| LBRACK; contents = expr_list { List contents }
 	| e1 = expr; CONS; e2 = expr { Binop (CONS, e1, e2) }
 	| IF; e1 = expr; THEN; CASE; e2 = expr; CASE; e3 = expr { If (e1, e2, e3) }
-	| LET; e1 = expr; IN; e2 = expr { Let (e1, e2) }
+	| DEF; e1 = expr; IN; e2 = expr { Def (e1, e2) }
 	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
 	| CTHREAD; e = expr { CThread e }
 	| KILL; e = expr { Kill e }
@@ -115,6 +121,10 @@ expr:
 	| JOIN; e = expr { Join e }
 	| JOINALL { Joinall }
 	| PRINT; e = expr { Print e }
+	| NONE { None }
+	| DEREF; e = expr { Deref e }
+	| CREATEREF; e = expr { CreateRef e }
+	| x = STRING; ASSIGN; e = expr { RefAssign (x, e) }
 	| e1 = expr; e2 = expr { App (e1, e2) }
 	| LPAREN; e=expr; RPAREN { e } 
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }

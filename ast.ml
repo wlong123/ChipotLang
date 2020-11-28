@@ -29,7 +29,7 @@ type expr =
   | Unop of unop * expr
   | Binop of binop * expr * expr
   | If of expr * expr * expr
-  | Let of expr * expr
+  | Def of expr * expr
   | Fun of string * expr
   | List of expr list
   | App of expr * expr
@@ -41,6 +41,11 @@ type expr =
   | Unlock of expr
   | Join of expr
   | Joinall
+  | None
+  | CreateRef of expr
+  | Ref of expr ref
+  | Deref of expr
+  | RefAssign of string * expr
 
 let string_of_binop = function
   | Add -> "Add"
@@ -73,7 +78,7 @@ let rec string_of_expr = function
   | Binop (op, e1, e2) -> "Binop (" ^ (string_of_binop op) ^ ", " ^
                           (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | If (e1, e2, e3) -> "If (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ", " ^ (string_of_expr e3) ^ ")"
-  | Let (e1, e2) -> "Let (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
+  | Def (e1, e2) -> "Def (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | Fun (id, e) -> "Fun (" ^ id ^ " -> " ^ (string_of_expr e) ^ ")"
   | List [] -> "List ([])"
   | List (h::t) -> "List (" ^ (string_of_expr h) ^ ", " ^ (string_of_expr (List t))  ^ ")"
@@ -86,3 +91,8 @@ let rec string_of_expr = function
   | Unlock e -> "Unlock (" ^ (string_of_expr e) ^ ")"
   | Join e -> "Join (" ^ (string_of_expr e) ^ ")"
   | Joinall -> "Joinall"
+  | None -> "None"
+  | CreateRef e -> "CreateRef (" ^ (string_of_expr e) ^ ")"
+  | Ref e -> "Ref (" ^ (string_of_expr !e) ^ ")"
+  | Deref e -> "Deref (" ^ (string_of_expr e) ^ ")"
+  | RefAssign (s, e) -> "RefAssign (s, " ^ (string_of_expr e) ^ ")"

@@ -44,7 +44,7 @@ rule read =
   | "|" { CASE }
   | "else" { ELSE }
   | "fun" { FUN }
-  | "def" { LET }
+  | "def" { DEF }
   | "in" { IN }
   | "true" { TRUE }
   | "false" { FALSE }
@@ -57,5 +57,10 @@ rule read =
   | "print" { PRINT }
   | "lock" { LOCK }
   | "unlock" { UNLOCK }
+  | "()" { NONE }
+  | "!" { DEREF }
+  | ":=" { ASSIGN }
+  | "ref" { CREATEREF }
+  | ";" { SEQSEP }
   | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }
