@@ -1,4 +1,0 @@
-def x = ref 1 in
-  print "Start";
-  (print (!x);
-  x := (!x) + 1)

@@ -1,4 +1,4 @@
-<< closures >>
+<< closures (conflicts with OCaml) >>
 def x = 1 in
 def f = fun y => x in
 def x = 2 in

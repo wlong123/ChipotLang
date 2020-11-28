@@ -44,7 +44,7 @@ type expr =
   | None
   | CreateRef of expr
   | Ref of expr ref
-  | Deref of expr
+  | Deref of string
   | RefAssign of string * expr
   | Seq of expr * expr
 
@@ -95,6 +95,6 @@ let rec string_of_expr = function
   | None -> "None"
   | CreateRef e -> "CreateRef (" ^ (string_of_expr e) ^ ")"
   | Ref e -> "Ref (" ^ (string_of_expr !e) ^ ")"
-  | Deref e -> "Deref (" ^ (string_of_expr e) ^ ")"
+  | Deref e -> "Deref (" ^ e ^ ")"
   | RefAssign (s, e) -> "RefAssign (s, " ^ (string_of_expr e) ^ ")"
   | Seq (e1, e2) -> "Seq(" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")" 
