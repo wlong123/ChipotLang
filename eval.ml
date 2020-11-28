@@ -33,7 +33,7 @@ let rec expr_to_string e =
   | Fun _ -> "Function"
   | List l -> "[" ^ (List.fold_left (fun x e -> x ^ (expr_to_string e) ^ ", ") "" l) ^ "]"
   | Tid t -> "Thread " ^ (string_of_int (Thread.id t))
-  | _ -> "ABSTRACT"
+  | _ -> string_of_expr e
 
 let eval_binop op e1 e2 =
   match op with
@@ -125,74 +125,90 @@ let rec eval' e s =
   (* print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)) ^ " " ^ (string_of_expr e)); *)
   match e with
   | Var x -> eval' (get_var s x) s
-  | Int i -> Int i
-  | Float f -> Float f
-  | Bool b -> Bool b
-  | String s -> String s
+  | Int i -> Int i, s
+  | Float f -> Float f, s
+  | Bool b -> Bool b, s
+  | String s' -> String s', s
   | Unop (op, e) -> begin
       let e' = eval' e s in
       match op with
       | NOT -> begin
           match e' with
-          | Bool b -> Bool (not b)
+          | Bool b, s -> Bool (not b), s
           | _ -> raise InvalidUnopType
         end
     end
   | Binop (op, e1, e2) -> begin
-      let e1' = eval' e1 s in
-      let e2' = eval' e2 s in
-      eval_binop op e1' e2'
+      let e1' = fst (eval' e1 s) in
+      let e2' = fst (eval' e2 s) in
+      eval_binop op e1' e2', s
     end
   | If (e1, e2, e3) -> begin
       match eval' e1 s with
-      | Bool b -> if b then eval' e2 s else eval' e3 s
+      | Bool b, s -> if b then eval' e2 s else eval' e3 s
       | _ -> raise InvalidGuard
     end
   | Def (e1, e2) -> begin
       match e1 with
-      | Binop (Eq, Var x, e) -> eval' e2 (add_var s x (eval' e s))
+      | Binop (Eq, Var x, e) -> begin 
+        let (e', s') = eval' e s in
+        eval' e2 (add_var s' x e')
+      end
       | _ -> raise InvalidGuard
     end
-  | CreateRef e -> Ref (ref (eval' e s))
-  | Ref e -> Ref e
+  | CreateRef e -> begin 
+      let (e', s') = eval' e s in
+      Ref (ref e'), s'
+    end
+  | Ref e -> Ref e, s
   | Deref e -> begin
       match eval' e s with
-      | Ref r -> !r
+      | Ref r, s -> !r, s
       | _ -> raise InvalidDereference
     end
   | RefAssign (x, e) -> begin
       match get_var s x with
-      | Ref r -> r := (eval' e s); None
+      | Ref r -> begin
+        let (e', s') = eval' e s in
+         r := e'; None, s'
+      end
       | _ -> raise InvalidRefAssignment
     end
-  | Fun (x, e) -> Fun (x, e)
-  | List [] -> List []
-  | List l -> (List (List.map (fun e -> eval' e s) l))
+  | Fun (x, e) -> Fun (x, e), s
+  | List [] -> List [], s
+  | List l -> (List (List.map (fun e -> fst (eval' e s)) l)), s
   | App (e1, e2) -> begin
       match eval' e1 s with
-      | Fun (x, e) -> eval' e (add_var s x (eval' e2 s)) 
+      | Fun (x, e), s -> begin 
+        let (e2', s') = eval' e2 s in
+        eval' e (add_var s' x e2') 
+      end
       | _ -> raise InvalidApp
     end
   | CThread e -> begin
       let t' = Thread.create (fun () -> eval' e s) () in
       threads := t' :: !threads;
       Thread.yield ();
-      None
+      None, s
     end
-  | Tid t -> Tid t
+  | Tid t -> Tid t, s
   | Kill e -> begin
       match eval' e s with
-      | Tid t -> Thread.join t; None
+      | Tid t, s -> Thread.join t; None, s
       | _ -> raise UnboundThread
     end
-  | Print e -> eval' e s |> expr_to_string |> print_endline; None
+  | Print e -> fst (eval' e s) |> expr_to_string |> print_endline; None, s
   | Join e -> begin
       match eval' e s with
-      | Tid t -> Thread.join t; None
+      | Tid t, s -> Thread.join t; None, s
       | _ -> failwith "Join requires thread ID"
     end
-  | Joinall -> List.iter (fun t -> if Thread.id t <> Thread.id tid then Thread.join t else ()) !threads; None
-  | None -> None
+  | Joinall -> List.iter (fun t -> if Thread.id t <> Thread.id tid then Thread.join t else ()) !threads; None, s
+  | None -> None, s
+  | Seq (e1, e2) -> begin
+    let (e1', s') = eval' e1 s in
+    eval' e2 s'
+  end
   | Lock e | Unlock e -> failwith "TODO"
 
-let eval e = eval' e []
+let eval e = fst (eval' e [])

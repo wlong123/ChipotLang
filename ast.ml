@@ -46,6 +46,7 @@ type expr =
   | Ref of expr ref
   | Deref of expr
   | RefAssign of string * expr
+  | Seq of expr * expr
 
 let string_of_binop = function
   | Add -> "Add"
@@ -96,3 +97,4 @@ let rec string_of_expr = function
   | Ref e -> "Ref (" ^ (string_of_expr !e) ^ ")"
   | Deref e -> "Deref (" ^ (string_of_expr e) ^ ")"
   | RefAssign (s, e) -> "RefAssign (s, " ^ (string_of_expr e) ^ ")"
+  | Seq (e1, e2) -> "Seq(" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")" 

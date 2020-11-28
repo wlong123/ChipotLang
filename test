@@ -1,0 +1,4 @@
+def x = ref 0 in
+print "Start";
+(print (!x);
+x := (!x) + 1)

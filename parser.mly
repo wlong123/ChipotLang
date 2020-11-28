@@ -65,13 +65,16 @@ open Ast
 %nonassoc IN
 %nonassoc IF
 %nonassoc ELSE
+%nonassoc DEREF
+%nonassoc SEQSEP
+%nonassoc ASSIGN
+%nonassoc PRINT
 %left PLUS
 %left MINUS
 %left TIMES
 %left OVER  
 %left MOD  
 %left TOTHEPOWER  
-%nonassoc DEREF
 
 %start <Ast.expr> prog
 
@@ -126,6 +129,7 @@ expr:
 	| CREATEREF; e = expr { CreateRef e }
 	| x = STRING; ASSIGN; e = expr { RefAssign (x, e) }
 	| e1 = expr; e2 = expr { App (e1, e2) }
-	| LPAREN; e=expr; RPAREN { e } 
+	| e1 = expr; SEQSEP; e2 = expr { Seq (e1, e2) }
 	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
+	| LPAREN; e=expr; RPAREN { e } 
 	;
