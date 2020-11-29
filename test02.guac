@@ -2,9 +2,9 @@
 def is_even = fun n =>
   if n = 0 then
   | true
-  | is_odd (n - 1) in
+  | is_odd(n - 1) in
 def is_odd = fun n =>
   if n = 0 then
   | false
-  | is_even (n - 1) in
-[is_odd 7, is_even 7]
+  | is_even(n - 1) in
+[is_odd(7), is_even(7)]

@@ -122,7 +122,7 @@ let eval_binop op e1 e2 =
 
 let rec eval' e s = 
   let tid = Thread.self () in
-  (* print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)) ^ " " ^ (string_of_expr e)); *)
+  print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)));
   match e with
   | Var x -> eval' (get_var s x) s
   | Int i -> Int i, s
@@ -151,9 +151,9 @@ let rec eval' e s =
   | Def (e1, e2) -> begin
       match e1 with
       | Binop (Eq, Var x, e) -> begin 
-        let (e', s') = eval' e s in
-        eval' e2 (add_var s' x e')
-      end
+          let (e', s') = eval' e s in
+          eval' e2 (add_var s' x e')
+        end
       | _ -> raise InvalidGuard
     end
   | CreateRef e -> begin 
@@ -161,17 +161,17 @@ let rec eval' e s =
       Ref (ref e'), s'
     end
   | Ref e -> Ref e, s
-  | Deref e -> begin
-      match eval' e s with
-      | Ref r, s -> !r, s
+  | Deref x -> begin
+      match get_var s x with
+      | Ref r -> !r, s
       | _ -> raise InvalidDereference
     end
   | RefAssign (x, e) -> begin
       match get_var s x with
       | Ref r -> begin
-        let (e', s') = eval' e s in
-         r := e'; None, s'
-      end
+          let (e', s') = eval' e s in
+          r := e'; None, s'
+        end
       | _ -> raise InvalidRefAssignment
     end
   | Fun (x, e) -> Fun (x, e), s
@@ -180,9 +180,9 @@ let rec eval' e s =
   | App (e1, e2) -> begin
       match eval' e1 s with
       | Fun (x, e), s -> begin 
-        let (e2', s') = eval' e2 s in
-        eval' e (add_var s' x e2') 
-      end
+          let (e2', s') = eval' e2 s in
+          eval' e (add_var s' x e2') 
+        end
       | _ -> raise InvalidApp
     end
   | CThread e -> begin
@@ -206,9 +206,9 @@ let rec eval' e s =
   | Joinall -> List.iter (fun t -> if Thread.id t <> Thread.id tid then Thread.join t else ()) !threads; None, s
   | None -> None, s
   | Seq (e1, e2) -> begin
-    let (e1', s') = eval' e1 s in
-    eval' e2 s'
-  end
+      let (e1', s') = eval' e1 s in
+      eval' e2 s'
+    end
   | Lock e | Unlock e -> failwith "TODO"
 
 let eval e = fst (eval' e [])

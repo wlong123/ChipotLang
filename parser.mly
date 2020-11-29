@@ -6,130 +6,127 @@ open Ast
 %token <int> INT
 %token <float> FLOAT
 %token <string> STRING
-%token LPAREN
-%token RPAREN
-%token PLUS
-%token MINUS
-%token TIMES
-%token OVER
-%token MOD
-%token TOTHEPOWER
-%token NOTEQUALS
-%token EQUALS
-%token GT
-%token LT
-%token GTE
-%token LTE
-%token AND
-%token OR 
-%token NOT
-%token PASSTO
-%token LBRACK
-%token RBRACK
-%token COMMA
-%token CONS
-%token DOT
-%token QUOTE
-%token IF
-%token THEN
-%token ELSE
-%token CASE
-%token FUN
-%token DEF
-%token IN
-%token TRUE
-%token FALSE
-%token CTHREAD
-%token KILL
-%token TID
-%token FORK
-%token JOIN
-%token JOINALL
-%token PRINT
-%token LOCK
-%token UNLOCK
-%token ASSIGN
-%token NONE
-%token DEREF
-%token SEQSEP
-%token CREATEREF
-%token EOF
+%token LPAREN RPAREN PLUS MINUS TIMES OVER MOD TOTHEPOWER NOTEQUALS EQUALS GT LT
+  GTE LTE AND OR NOT PASSTO LBRACK RBRACK COMMA CONS DOT QUOTE IF THEN CASE
+  FUN DEF IN TRUE FALSE CTHREAD KILL TID FORK JOIN JOINALL PRINT LOCK UNLOCK
+	ASSIGN NONE DEREF SEQSEP CREATEREF EOF
 
-%nonassoc EQUALS
-%nonassoc NOTEQUALS
-%nonassoc GT
-%nonassoc LT
-%nonassoc GTE
-%nonassoc LTE
-%nonassoc DEF
-%nonassoc IN
-%nonassoc IF
-%nonassoc ELSE
-%nonassoc DEREF
-%nonassoc SEQSEP
-%nonassoc ASSIGN
-%nonassoc PRINT
-%left PLUS
-%left MINUS
-%left TIMES
-%left OVER  
+%right DEF IN FUN PASSTO IF THEN CASE
+%right SEQSEP
+%nonassoc NOTEQUALS EQUALS GT LT GTE LTE AND OR NOT TRUE FALSE NONE
+	CTHREAD KILL TID FORK JOIN JOINALL LOCK UNLOCK
+	PRINT QUOTE ASSIGN CREATEREF 
+	LBRACK RBRACK COMMA CONS DOT     
 %left MOD  
-%left TOTHEPOWER  
+%left PLUS MINUS
+%left TIMES OVER  
+%left TOTHEPOWER
+%right LPAREN RPAREN 
+%right DEREF
 
 %start <Ast.expr> prog
 
 %%
 
-expr_list:
-| { [] }
-| e = expr; RBRACK { e :: [] }
-| e = expr; COMMA; tail = expr_list { e :: tail }
+prog : expr EOF { $1 }
 
-prog: expr EOF { $1 }
+expr :
+	| LPAREN; expr; RPAREN { $2 } 
+	| expr; SEQSEP; expr { Seq ($1, $3) }
+	| str { $1 }
+	| arith_expr { $1 }
+	| bool_expr { $1 }
+	| data_struct { $1 }
+	| func { $1 }
+	| app { $1 }
+	| sync { $1 }
+	| constructs { $1 }
+	| NONE { None }
+	;
 
-expr:
-  | QUOTE; s = STRING; QUOTE { String s }
-	| x = STRING { Var x }
-	| i = INT { Int i }
-	| f = FLOAT { Float f }
-	| MINUS; i = INT { Int (~-i) }
-	| MINUS; f = FLOAT { Float (~-.f) }
+str : QUOTE; STRING; QUOTE { String $2 }
+	
+var : STRING { Var $1 }
+
+num :
+	| MINUS; INT { Int (~-$2) }
+	| MINUS; FLOAT { Float (~-.$2) }
+	| INT { Int $1 }
+	| FLOAT { Float $1 }
+	;
+
+%inline arith_binop : 
+	| PLUS { Add }
+	| MINUS { Sub }
+	| TIMES { Mul }
+	| OVER { Div }
+	| MOD { Mod }
+	| TOTHEPOWER { Pow }
+
+arith_expr :
+	| expr; arith_binop; expr { Binop ($2, $1, $3) }
+	| var { $1 }
+	| num { $1 }
+	;
+	
+bool :
 	| TRUE { Bool true }
 	| FALSE { Bool false }
-	| e1 = expr; PLUS; e2 = expr { Binop (Add, e1, e2) }
-	| e1 = expr; MINUS; e2 = expr { Binop (Sub, e1, e2) } 
-	| s = STRING; MINUS; e2 = expr { Binop (Sub, Var s, e2) } 
-	| e1 = expr; TIMES; e2 = expr { Binop (Mul, e1, e2) } 
-	| e1 = expr; OVER; e2 = expr { Binop (Div, e1, e2) } 
-	| e1 = expr; MOD; e2 = expr { Binop (Mod, e1, e2) } 
-	| e1 = expr; TOTHEPOWER; e2 = expr { Binop (Pow, e1, e2) } 
-	| e1 = expr; NOTEQUALS; e2 = expr { Binop (Neq, e1, e2) } 
-	| e1 = expr; EQUALS; e2 = expr { Binop (Eq, e1, e2) } 
-	| e1 = expr; GT; e2 = expr { Binop (GT, e1, e2) } 
-	| e1 = expr; LT; e2 = expr { Binop (LT, e1, e2) } 
-	| e1 = expr; GTE; e2 = expr { Binop (GTE, e1, e2) } 
-	| e1 = expr; LTE; e2 = expr { Binop (LTE, e1, e2) } 
-	| e1 = expr; AND; e2 = expr { Binop (AND, e1, e2) } 
-	| e1 = expr; OR; e2 = expr { Binop (OR, e1, e2) } 
-	| NOT; e = expr { Unop (NOT, e) } 
-	| LBRACK; contents = expr_list { List contents }
-	| e1 = expr; CONS; e2 = expr { Binop (CONS, e1, e2) }
-	| IF; e1 = expr; THEN; CASE; e2 = expr; CASE; e3 = expr { If (e1, e2, e3) }
-	| DEF; e1 = expr; IN; e2 = expr { Def (e1, e2) }
-	| FUN; x1 = STRING; PASSTO; e = expr { Fun (x1, e) }
-	| CTHREAD; e = expr { CThread e }
-	| KILL; e = expr { Kill e }
-	| LOCK; e = expr { Lock e }
-	| UNLOCK; e = expr { Unlock e }
-	| JOIN; e = expr { Join e }
+	;
+
+%inline bool_binop :
+	| EQUALS { Eq }
+	| NOTEQUALS { Neq }
+	| GT { GT }
+	| LT { LT }
+	| GTE { GTE }
+	| LTE { LTE }
+	| AND { AND }
+	| OR { OR }
+	;
+
+bool_expr :
+	| expr; bool_binop; expr { Binop ($2, $1, $3) } 
+	| NOT; expr { Unop (NOT, $2) }
+	| bool { $1 }
+	;
+
+expr_list :
+	| { [] }
+	| expr; RBRACK { $1 :: [] }
+	| expr; COMMA; expr_list { $1 :: $3 }
+	;
+
+lst : LBRACK; expr_list { List $2 }
+
+data_struct :
+	| lst { $1 }
+	| expr; CONS; expr { Binop (CONS, $1, $3) }
+	| lst; DOT; expr { Binop (PROJ, $1, $3) }
+	;
+
+func :
+	| FUN; STRING; PASSTO; expr { Fun ($2, $4) }
+
+app :
+	| func; expr { App ($1, $2) }
+	| var; LPAREN; expr; RPAREN { App ($1, $3) }
+	
+sync :
+	| CTHREAD; LPAREN; app; RPAREN;{ CThread $3 }
+	| KILL; LPAREN; INT; RPAREN { Kill (Int $3) }
+	| JOIN; LPAREN; INT; RPAREN { Join (Int $3) }
 	| JOINALL { Joinall }
+	// | LOCK; expr { Lock $2 }
+	// | UNLOCK; expr { Unlock $2 }
+	;
+
+constructs :
+	| IF; expr; THEN; CASE; expr; CASE; expr { If ($2, $5, $7) }
+	| DEF; expr; IN; expr { Def ($2, $4) }
 	| NONE { None }
-	| DEREF; e = expr { Deref e }
-	| CREATEREF; e = expr { CreateRef e }
-	| x = STRING; ASSIGN; e = expr { RefAssign (x, e) }
-	| e1 = expr; e2 = expr { App (e1, e2) }
-	| e1 = expr; DOT; e2 = expr { Binop (PROJ, e1, e2) }
-	| PRINT; e = expr { Print e }
-	| e1 = expr; SEQSEP; e2 = expr { Seq (e1, e2) }
-	| LPAREN; e=expr; RPAREN { e } 
+	| CREATEREF; expr { CreateRef $2 }
+	| DEREF; STRING { Deref $2 }
+	| STRING; ASSIGN; expr { RefAssign ($1, $3) }
+	| PRINT; LPAREN; expr; RPAREN; { Print $3 }
 	;
