@@ -7,21 +7,22 @@ open Ast
 %token <float> FLOAT
 %token <string> STRING
 %token LPAREN RPAREN PLUS MINUS TIMES OVER MOD TOTHEPOWER NOTEQUALS EQUALS GT LT
-  GTE LTE AND OR  NOT PASSTO LBRACK RBRACK COMMA CONS DOT QUOTE IF THEN CASE
+  GTE LTE AND OR NOT PASSTO LBRACK RBRACK COMMA CONS DOT QUOTE IF THEN CASE
   FUN DEF IN TRUE FALSE CTHREAD KILL TID FORK JOIN JOINALL PRINT LOCK UNLOCK
 	ASSIGN NONE DEREF SEQSEP CREATEREF EOF
 
-%nonassoc EQUALS NOTEQUALS GT LT GTE LTE
-%nonassoc DEF IN
-%nonassoc IF ELSE
-%nonassoc SEQSEP
-%nonassoc ASSIGN
-%nonassoc PRINT
-%nonassoc DEREF
+%right DEF IN FUN PASSTO IF THEN CASE
+%right SEQSEP
+%nonassoc NOTEQUALS EQUALS GT LT GTE LTE AND OR NOT TRUE FALSE NONE
+	CTHREAD KILL TID FORK JOIN JOINALL LOCK UNLOCK
+	PRINT QUOTE ASSIGN CREATEREF 
+	LBRACK RBRACK COMMA CONS DOT     
+%left MOD  
 %left PLUS MINUS
 %left TIMES OVER  
-%left MOD  
 %left TOTHEPOWER
+%right LPAREN RPAREN 
+%right DEREF
 
 %start <Ast.expr> prog
 
@@ -40,6 +41,7 @@ expr :
 	| app { $1 }
 	| sync { $1 }
 	| constructs { $1 }
+	| NONE { None }
 	;
 
 str : QUOTE; STRING; QUOTE { String $2 }
@@ -47,24 +49,24 @@ str : QUOTE; STRING; QUOTE { String $2 }
 var : STRING { Var $1 }
 
 num :
-	| INT { Int $1 }
-	| FLOAT { Float $1 }
 	| MINUS; INT { Int (~-$2) }
 	| MINUS; FLOAT { Float (~-.$2) }
+	| INT { Int $1 }
+	| FLOAT { Float $1 }
 	;
 
+%inline arith_binop : 
+	| PLUS { Add }
+	| MINUS { Sub }
+	| TIMES { Mul }
+	| OVER { Div }
+	| MOD { Mod }
+	| TOTHEPOWER { Pow }
+
 arith_expr :
-	| expr; PLUS; expr { Binop (Add, $1, $3) }
-	| expr; MINUS; expr { Binop (Sub, $1, $3) } 
-	| var; MINUS; expr { Binop (Sub, $1, $3) } 
-	| expr; MINUS; var { Binop (Sub, $1, $3) } 
-	// | expr; MINUS; var { Binop (Sub, $1, $3) } 
-	| expr; TIMES; expr { Binop (Mul, $1, $3) } 
-	| expr; OVER; expr { Binop (Div, $1, $3) } 
-	| expr; MOD; expr { Binop (Mod, $1, $3) } 
-	| expr; TOTHEPOWER; expr { Binop (Pow, $1, $3) } 
-	| num { $1 }
+	| expr; arith_binop; expr { Binop ($2, $1, $3) }
 	| var { $1 }
+	| num { $1 }
 	;
 	
 bool :
@@ -72,15 +74,19 @@ bool :
 	| FALSE { Bool false }
 	;
 
+%inline bool_binop :
+	| EQUALS { Eq }
+	| NOTEQUALS { Neq }
+	| GT { GT }
+	| LT { LT }
+	| GTE { GTE }
+	| LTE { LTE }
+	| AND { AND }
+	| OR { OR }
+	;
+
 bool_expr :
-	| expr; EQUALS; expr { Binop (Eq, $1, $3) } 
-	| expr; NOTEQUALS; expr { Binop (Neq, $1, $3) } 	
-	| expr; GT; expr { Binop (GT, $1, $3) } 
-	| expr; LT; expr { Binop (LT, $1, $3) } 
-	| expr; GTE; expr { Binop (GTE, $1, $3) } 
-	| expr; LTE; expr { Binop (LTE, $1, $3) }
-	| expr; AND; expr { Binop (AND, $1, $3) } 
-	| expr; OR; expr { Binop (OR, $1, $3) } 
+	| expr; bool_binop; expr { Binop ($2, $1, $3) } 
 	| NOT; expr { Unop (NOT, $2) }
 	| bool { $1 }
 	;
@@ -104,12 +110,12 @@ func :
 
 app :
 	| func; expr { App ($1, $2) }
-	| var; expr { App ($1, $2) }
+	| var; LPAREN; expr; RPAREN { App ($1, $3) }
 	
 sync :
-	| CTHREAD; app { CThread $2 }
-	| KILL; INT { Kill (Int $2) }
-	| JOIN; INT { Join (Int $2) }
+	| CTHREAD; LPAREN; app; RPAREN;{ CThread $3 }
+	| KILL; LPAREN; INT; RPAREN { Kill (Int $3) }
+	| JOIN; LPAREN; INT; RPAREN { Join (Int $3) }
 	| JOINALL { Joinall }
 	// | LOCK; expr { Lock $2 }
 	// | UNLOCK; expr { Unlock $2 }
@@ -122,5 +128,5 @@ constructs :
 	| CREATEREF; expr { CreateRef $2 }
 	| DEREF; STRING { Deref $2 }
 	| STRING; ASSIGN; expr { RefAssign ($1, $3) }
-	| PRINT; expr { Print $2 }
+	| PRINT; LPAREN; expr; RPAREN; { Print $3 }
 	;

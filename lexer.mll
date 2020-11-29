@@ -5,9 +5,12 @@ open Parser
 let white = [' ' '\t' '\n']+
 let digit = ['0'-'9']
 let letter = ['a'-'z' 'A'-'Z']
+let symbol = ['(' ')' '+' '-' '*' '/' '%' '^' '=' '!' '>'
+              '<' '=' '[' ']' ',' ':' '.' '"' '|' ';' 
+              '`' '~' '@' '#' '$' '&' '*' ''' '_' '{' '}' '\\' '?']
 let float = digit+ '.' digit+
 let int = digit+
-let comment = "<<" (digit | letter | white)* ">>"
+let comment = "<<" (digit | letter | white | symbol)* ">>"
 let string = letter (letter | digit | ''' | '_')* 
 
 rule read = 
@@ -57,10 +60,10 @@ rule read =
   | "print" { PRINT }
   | "lock" { LOCK }
   | "unlock" { UNLOCK }
-  | "()" { NONE }
+  | "none" { NONE }
   | "!" { DEREF }
   | ":=" { ASSIGN }
-  | "ref" { CREATEREF }
+  | "@" { CREATEREF }
   | ";" { SEQSEP }
   | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }

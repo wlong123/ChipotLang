@@ -2,4 +2,4 @@
 def x = 1 in
 def f = fun y => x in
 def x = 2 in
-f 0
+f(0)

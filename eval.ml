@@ -122,7 +122,7 @@ let eval_binop op e1 e2 =
 
 let rec eval' e s = 
   let tid = Thread.self () in
-  (* print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)) ^ " " ^ (string_of_expr e)); *)
+  print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)));
   match e with
   | Var x -> eval' (get_var s x) s
   | Int i -> Int i, s

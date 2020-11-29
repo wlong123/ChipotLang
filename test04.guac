@@ -1,15 +1,17 @@
-def x = ref 0 in
+<< ten threads increment and decrement a shared variable without locks >>
+def x = @ 0 in
 def inc_x = fun y =>
-  print "Start";
-  print (!x);
-  x := (!x) + 1;
-  print "End";
-  print (!x)
+  x := !x + 1;
+  x := !x - 1;
+  x := !x + 1;
+  x := !x - 1;
+  x := !x + 1
 in
-def t1 = thread (inc_x ()) in
-def t2 = thread (inc_x ()) in
-def t3 = thread (inc_x ()) in
-def t4 = thread (inc_x ()) in
-def t5 = thread (inc_x ()) in
+def loop = fun n =>
+  if (n = 0) then
+  | none
+  | thread (inc_x (none)); loop (n - 1)
+in
+loop (10);
 joinall;
 print (!x)
