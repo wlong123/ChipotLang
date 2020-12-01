@@ -113,12 +113,12 @@ app :
 	| var; LPAREN; expr; RPAREN { App ($1, $3) }
 	
 sync :
-	| CTHREAD; LPAREN; app; RPAREN;{ CThread $3 }
+	| CTHREAD; LPAREN; expr; RPAREN;{ CThread $3 }
 	| KILL; LPAREN; INT; RPAREN { Kill (Int $3) }
 	| JOIN; LPAREN; INT; RPAREN { Join (Int $3) }
 	| JOINALL { Joinall }
-	// | LOCK; expr { Lock $2 }
-	// | UNLOCK; expr { Unlock $2 }
+	| LOCK; expr { Lock $2 }
+	| UNLOCK; expr { Unlock $2 }
 	;
 
 constructs :

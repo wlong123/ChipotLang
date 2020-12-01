@@ -1,2 +1,2 @@
-def x = ref 1 in
+def x = @ 1 in
 !x

@@ -9,6 +9,7 @@ exception InvalidApp
 exception UnboundThread
 exception InvalidDereference
 exception InvalidRefAssignment
+exception InvalidLock
 
 type store = (string * expr) list
 
@@ -158,17 +159,17 @@ let rec eval' e s =
     end
   | CreateRef e -> begin 
       let (e', s') = eval' e s in
-      Ref (ref e'), s'
+      Ref (ref e', Mutex.create ()), s'
     end
-  | Ref e -> Ref e, s
+  | Ref (e, l) -> Ref (e, l), s
   | Deref x -> begin
       match get_var s x with
-      | Ref r -> !r, s
+      | Ref (r, _) -> !r, s
       | _ -> raise InvalidDereference
     end
   | RefAssign (x, e) -> begin
       match get_var s x with
-      | Ref r -> begin
+      | Ref (r, _) -> begin
           let (e', s') = eval' e s in
           r := e'; None, s'
         end
@@ -209,6 +210,17 @@ let rec eval' e s =
       let (e1', s') = eval' e1 s in
       eval' e2 s'
     end
-  | Lock e | Unlock e -> failwith "TODO"
+  | Lock e -> begin
+      let (e', s') = eval' e s in
+      match e' with
+      | Ref (e, l) -> Mutex.lock l; Ref (e, l), s'
+      | _ -> raise InvalidLock
+    end
+  | Unlock e -> begin
+      let (e', s') = eval' e s in
+      match e' with
+      | Ref (e, l) -> Mutex.unlock l; Ref (e, l), s'
+      | _ -> raise InvalidLock
+  end
 
 let eval e = fst (eval' e [])
