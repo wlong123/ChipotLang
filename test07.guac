@@ -1,0 +1,5 @@
+def l = @ [1] in
+def t1 = thread (lock l; l := [2]) in
+def t2 = thread (lock l; l := [3]) in
+joinall;
+print (!l)
