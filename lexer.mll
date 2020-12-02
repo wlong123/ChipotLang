@@ -52,14 +52,15 @@ rule read =
   | "true" { TRUE }
   | "false" { FALSE }
   | "thread" { CTHREAD }
-  | "kill" { KILL }
   | "tid" { TID }
   | "fork" { FORK }
   | "join" { JOIN }
   | "joinall" { JOINALL }
   | "print" { PRINT }
   | "lock" { LOCK }
+  | "lockall" { LOCKALL }
   | "unlock" { UNLOCK }
+  | "unlockall" { UNLOCKALL }
   | "none" { NONE }
   | "!" { DEREF }
   | ":=" { ASSIGN }

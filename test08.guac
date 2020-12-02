@@ -1,0 +1,19 @@
+<< ten threads increment and decrement a shared variable with locks (similar to test04.guac) >>
+def x = @ 0 in
+def inc_x = fun y =>
+  lock x;
+  x := !x + 1;
+  x := !x - 1;
+  x := !x + 1;
+  x := !x - 1;
+  x := !x + 1;
+  unlock x
+in
+def loop = fun n =>
+  if (n = 0) then
+  | none
+  | thread (inc_x (none)); loop (n - 1)
+in
+loop (10);
+joinall;
+print (!x)

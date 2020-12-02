@@ -35,10 +35,11 @@ type expr =
   | App of expr * expr
   | CThread of expr
   | Tid of Thread.t
-  | Kill of expr
   | Print of expr
   | Lock of expr
   | Unlock of expr
+  | Lockall of expr
+  | Unlockall of expr
   | Join of expr
   | Joinall
   | None
@@ -86,10 +87,11 @@ let rec string_of_expr = function
   | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | CThread e -> "Thread (" ^ (string_of_expr e) ^ ")"
   | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
-  | Kill e -> "Kill (" ^ (string_of_expr e) ^ ")"
   | Print e -> "Print (" ^ (string_of_expr e) ^ ")"
   | Lock e -> "Lock (" ^ (string_of_expr e) ^ ")"
   | Unlock e -> "Unlock (" ^ (string_of_expr e) ^ ")"
+  | Lockall e -> "Lockall (" ^ (string_of_expr e) ^ ")"
+  | Unlockall e -> "Unlockall (" ^ (string_of_expr e) ^ ")"
   | Join e -> "Join (" ^ (string_of_expr e) ^ ")"
   | Joinall -> "Joinall"
   | None -> "None"

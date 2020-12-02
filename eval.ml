@@ -1,7 +1,7 @@
 open Ast
 
 exception Illegal
-exception UnboundVariable
+exception UnboundVariable of string
 exception InvalidGuard
 exception InvalidUnopType
 exception InvalidBinopType
@@ -22,7 +22,7 @@ let rec add_var (s:store) (x:string) (v:expr) =
 
 let rec get_var s x =
   match s with
-  | [] -> raise UnboundVariable
+  | [] -> raise (UnboundVariable x)
   | (x',v')::t -> if x' = x then v' else get_var t x
 
 let rec expr_to_string e =
@@ -193,11 +193,6 @@ let rec eval' e s =
       None, s
     end
   | Tid t -> Tid t, s
-  | Kill e -> begin
-      match eval' e s with
-      | Tid t, s -> Thread.join t; None, s
-      | _ -> raise UnboundThread
-    end
   | Print e -> fst (eval' e s) |> expr_to_string |> print_endline; None, s
   | Join e -> begin
       match eval' e s with
@@ -216,11 +211,33 @@ let rec eval' e s =
       | Ref (e, l) -> Mutex.lock l; Ref (e, l), s'
       | _ -> raise InvalidLock
     end
+  | Lockall e -> begin
+      let (e', s') = eval' e s in
+      match e' with
+      | List lst ->
+        (fun x -> match x with
+           | Ref (e, l) -> Mutex.lock l; Ref (e, l)
+           | _ -> raise InvalidLock)
+        |> (fun map_fn -> let e' = List.map map_fn lst in
+             (List e', s'))
+      | _ -> raise InvalidLock
+    end
   | Unlock e -> begin
       let (e', s') = eval' e s in
       match e' with
       | Ref (e, l) -> Mutex.unlock l; Ref (e, l), s'
       | _ -> raise InvalidLock
-  end
+    end
+  | Unlockall e -> begin
+      let (e', s') = eval' e s in
+      match e' with
+      | List lst ->
+        (fun x -> match x with
+           | Ref (e, l) -> Mutex.unlock l; Ref (e, l)
+           | _ -> raise InvalidLock)
+        |> (fun map_fn -> let e' = List.map map_fn lst in
+             (List e', s'))
+      | _ -> raise InvalidLock
+    end
 
 let eval e = fst (eval' e [])
