@@ -114,7 +114,7 @@ app :
 	
 sync :
 	| CTHREAD; LPAREN; expr; RPAREN;{ CThread $3 }
-	| JOIN; LPAREN; INT; RPAREN { Join (Int $3) }
+	| JOIN; LPAREN; expr; RPAREN { Join $3 }
 	| JOINALL { Joinall }
 	| LOCK; expr { Lock $2 }
 	| UNLOCK; expr { Unlock $2 }
