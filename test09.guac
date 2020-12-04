@@ -1,19 +1,15 @@
-<< Swap two refs with odd number of threads to show (un)lockall primitives >>
-def x = @ 0 in
-def y = @ 1 in
-def swap = fun z =>
-  lockall [x, y];
-  def tmp = !x in
-  x := !y;
-  y := tmp;
-  unlockall [x, y]
+<< 25 threads append their ID to a log, order of scheduling is non-deterministic >>
+def log = @ [] in
+def add_id_to_log = fun n =>
+  lock (log);
+  log := (n :: !log);
+  unlock (log)
 in
 def loop = fun n =>
   if (n = 0) then
   | none
-  | thread (swap (none)); loop (n - 1)
+  | thread (add_id_to_log (n)); loop (n - 1)
 in
-loop (3);
+loop (25);
 joinall;
-print (!x);
-print (!y)
+print (!log)

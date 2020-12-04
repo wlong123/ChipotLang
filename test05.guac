@@ -1,6 +1,7 @@
-<< two threads update a ref, uses joinall >>
+<< two threads update a ref, uses joins >>
 def l = @ [1] in
 def t1 = thread (lock l; l := [2]; unlock l) in
 def t2 = thread (lock l; l := [3]; unlock l) in
-joinall;
+join (t1);
+join (t2);
 print (!l)

@@ -1,13 +1,11 @@
-<< ten threads increment and decrement a shared variable WITH locks (related to test03.guac) >>
+<< ten threads increment and decrement a shared variable WITHOUT locks so output is nondeterministic >>
 def x = @ 0 in
 def inc_x = fun y =>
-  lock x;
   x := !x + 1;
   x := !x - 1;
   x := !x + 1;
   x := !x - 1;
-  x := !x + 1;
-  unlock x
+  x := !x + 1
 in
 def loop = fun n =>
   if (n = 0) then

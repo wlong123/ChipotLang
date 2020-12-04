@@ -1,19 +1,8 @@
-<< ten threads increment and decrement a shared variable with locks (similar to test04.guac) >>
-def x = @ 0 in
-def inc_x = fun y =>
-  lock x;
-  x := !x + 1;
-  x := !x - 1;
-  x := !x + 1;
-  x := !x - 1;
-  x := !x + 1;
-  unlock x
-in
-def loop = fun n =>
-  if (n = 0) then
-  | none
-  | thread (inc_x (none)); loop (n - 1)
-in
-loop (10);
+<< two threads update two refs, uses lockall and unlockall >>
+def l1 = @ [1] in
+def l2 = @ [2] in
+def t1 = thread (lockall [l1, l2]; l1 := [3]; unlockall [l1, l2]) in
+def t2 = thread (lockall [l1, l2]; l2 := [4]; unlockall [l1, l2]) in
 joinall;
-print (!x)
+print (!l1);
+print (!l2)

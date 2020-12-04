@@ -1,13 +1,13 @@
 open Ast
 
 let () =
-  print_endline "Enter name of file to test. (e.g. test0x.guac, where x is 0, 1, or 2)";
+  print_endline "Enter name of file to test. (e.g. test0x.guac, where x is in [0,9])";
   print_string ">> ";
   let file = open_in (read_line ()) in
   let lexbuf = Lexing.from_channel file in
   let e =
     try Parser.prog Lexer.read lexbuf
-    with Parsing.Parse_error ->
+    with _ ->
       let pos = lexbuf.Lexing.lex_curr_p in
       Format.printf "Syntax error at %d:%d\n"
         pos.Lexing.pos_lnum (pos.Lexing.pos_cnum - pos.Lexing.pos_bol);
