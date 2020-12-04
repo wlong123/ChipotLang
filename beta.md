@@ -33,7 +33,7 @@ fib (12)
 * Output as AST: Int 144
 ```
 
-##### test08.guac: Shows that result of atomic sequence of increments and decrements is deterministic
+##### test06.guac: Shows that result of atomic sequence of increments and decrements is deterministic
 ```haskell
 def x = @ 0 in
 def inc_x = fun y =>
@@ -58,7 +58,7 @@ print (!x)
 * Result of Print: 10
 ```
 
-##### test09.guac: Shows that an odd number of threads swapping x and y (with locks) has a net result equivalent to swapping x and y once
+##### test07.guac: Shows that an odd number of threads swapping x and y (with locks) has a net result equivalent to swapping x and y once
 ```haskell
 def x = @ 0 in
 def y = @ 1 in
@@ -83,7 +83,7 @@ print (!y)
 * Result of Prints: 1, 0
 ```
 
-##### test11.guac: Shows that threads can be scheduled in various permutations
+##### test09.guac: Shows that threads can be scheduled in various permutations
 ```haskell
 def log = @ [] in
 def add_id_to_log = fun n =>
