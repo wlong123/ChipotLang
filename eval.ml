@@ -123,7 +123,6 @@ let eval_binop op e1 e2 =
 
 let rec eval' e s = 
   let tid = Thread.self () in
-  print_endline ("Executing Thread: " ^ (string_of_int (Thread.id tid)));
   match e with
   | Var x -> eval' (get_var s x) s
   | Int i -> Int i, s
@@ -190,7 +189,7 @@ let rec eval' e s =
       let t' = Thread.create (fun () -> eval' e s) () in
       threads := t' :: !threads;
       Thread.yield ();
-      None, s
+      Tid t', s
     end
   | Tid t -> Tid t, s
   | Print e -> fst (eval' e s) |> expr_to_string |> print_endline; None, s
