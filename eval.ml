@@ -154,8 +154,8 @@ let rec cps (e:expr) (s:store) : (expr -> expr) -> expr =
     | _ -> raise InvalidGuard
   end
   | Fun (x, e) -> fun k -> 
-    let k' = fresh_id () in
-    k (Fun (k', (Fun (x, (cps e s) (fun r -> App (Var k', r))))))
+    let k'' = fresh_id () in
+    k (Fun (x, ((cps e s) (fun r -> (Def (Binop (Eq, Var k'', r), r))))))
   | App (e1, e2) -> fun k ->
     let r = fresh_id () in
     cps e1 s (fun f -> 
