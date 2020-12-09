@@ -1,2 +1,2 @@
-def x = fun y => y + 1 in
-x (1) + x (1)
+def x = fun y => y in
+x (1)

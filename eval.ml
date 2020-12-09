@@ -129,38 +129,107 @@ let fresh_id : unit -> string =
   n := !n + 1;
   x
 
-let rec cps (e:expr) (s:store) : (expr -> expr) -> expr =
+let rec cps2 (e:expr) : expr =
+  match e with
+  | Var x -> begin
+    let k = fresh_id () in
+    Fun (k, App(Var k, Var x))
+  end
+  | Int i -> begin
+    let k = fresh_id () in
+    Fun (k, App(Var k, Int i))
+  end
+  | Float f -> begin
+    let k = fresh_id () in
+    Fun (k, App(Var k, Float f))
+  end
+  | Bool b -> begin
+    let k = fresh_id () in
+    Fun (k, App(Var k, Bool b))
+  end
+  | String s -> begin
+    let k = fresh_id () in
+    Fun (k, App (Var k, String s))
+  end
+  | Unop (op, e) -> begin
+    let k = fresh_id () in
+    let k' = fresh_id () in
+    Fun (k, App ((cps2 e), Fun(k', App (Var k, (Unop(op, Var k'))))))
+  end
+  (* TODO: check this *)
+  | Binop (op, e1, e2) -> begin
+    let k = fresh_id () in
+    let n = fresh_id () in
+    let m = fresh_id () in
+    let n_op_m = Binop (op, Var n, Var m) in
+    Fun (k, App (cps2 e1, (Fun (n, (App (cps2 e2, (Fun (m, App (Var k, n_op_m)))))))))
+  end
+  | If (e1, e2, e3) -> failwith "todo"
+  | Def (e1, e2) -> begin
+    let k = fresh_id () in
+    let k' = fresh_id () in
+    match e1 with
+    | Binop (Eq, Var x, e) -> begin 
+        Fun (k, App (cps2 e, Fun (k', Def (Binop (Eq, Var x, Var k'), App (cps2 e2, Var k)))))
+        (* fun k -> (cps e) (fun k' -> Def (Binop (Eq, Var x, k'), (cps e2) k)) *)
+      end
+    | _ -> raise InvalidGuard
+    (* match e1 with
+    | Binop (Eq, Var x, e) -> cps2 (App (Fun (x, e2), e))
+    | _ -> raise InvalidGuard *)
+  end
+  | Fun (x, e) -> begin
+    let k = fresh_id () in
+    let x = fresh_id () in
+    let k' = fresh_id () in
+    Fun (k, App (Var k, Fun (x, Fun (k', App (cps2 e, Var k')))))
+  end
+  | App (e1, e2) -> begin
+    let k = fresh_id () in
+    let f = fresh_id () in
+    let v = fresh_id () in
+    let fvk = App (Var f, App (Var v, Var k)) in
+    Fun (k, App (cps2 e1, Fun (f, (App (cps2 e2, Fun (v, fvk))))))
+  end
+  | _ -> failwith "unimplemented"
+
+let rec cps (e:expr) : (expr -> expr) -> expr =
   match e with 
   | Var x -> fun k -> k (Var x)
   | Int i -> fun k -> k (Int i)
   | Float f -> fun k -> k (Float f)
   | Bool b -> fun k -> k (Bool b)
   | String s -> fun k -> k (String s)
-  | Unop (op, e) -> fun k -> (cps e s) (fun temp -> k (Unop (op, temp)))
-  | Binop (op, e1, e2) -> fun k -> (cps e1 s) (fun temp1 -> (cps e2 s) (fun temp2 ->
+  | Unop (op, e) -> fun k -> (cps e) (fun temp -> k (Unop (op, temp)))
+  | Binop (op, e1, e2) -> fun k -> (cps e1) (fun temp1 -> (cps e2) (fun temp2 ->
     let r = fresh_id () in
     Def (Binop (Eq, Var r, (Binop (op, temp1, temp2))), k (Var r))))
   | If (e1, e2, e3) -> fun k -> 
     let k' = fresh_id () in
     let k'_f = fun r -> App (Var k', r) in
     Def (Binop (Eq, Var k', (let r = fresh_id () in Fun (r, k (Var r)))),
-    cps e1 s (fun v1 ->
-      If (v1, cps e2 s k'_f, cps e3 s k'_f)))
+    cps e1 (fun v1 ->
+      If (v1, cps e2 k'_f, cps e3 k'_f)))
   | Def (e1, e2) -> begin
     match e1 with
     | Binop (Eq, Var x, e) -> begin 
-        fun k -> (cps e s) (fun k' -> Def (Binop (Eq, Var x, k'), (cps e2 s) k))
+        fun k -> (cps e) (fun k' -> Def (Binop (Eq, Var x, k'), (cps e2) k))
       end
     | _ -> raise InvalidGuard
   end
   | Fun (x, e) -> fun k -> 
-    let k'' = fresh_id () in
-    k (Fun (x, ((cps e s) (fun r -> (Def (Binop (Eq, Var k'', r), r))))))
+    let k' = fresh_id () in
+    k (Fun (k', 
+        Fun (x, ((cps e) (fun r -> App (Var k', r))))
+      ))
   | App (e1, e2) -> fun k ->
     let r = fresh_id () in
-    cps e1 s (fun f -> 
-      (cps e2 s) (fun v -> 
-        App (f, App (Fun (r, k (Var r)), v))))
+    cps e1 
+      (fun f -> 
+        (cps e2) (fun v -> 
+          App (f, k (Binop (Eq, Var r, v))) 
+        )
+      )
   | _ -> failwith "unimplemented"
 
 let rec eval' e s n unit = 
@@ -227,7 +296,7 @@ let rec eval' e s n unit =
           let (e2', s') = eval' e2 s (n-1) () in
           eval' e (add_var s' x e2') (n-1) () 
         end
-      | _ -> raise InvalidApp
+      | _ -> print_endline ("ERROR: " ^ string_of_expr e); raise InvalidApp
     end
   | CThread e -> begin
       let t' = Thread.create (fun () -> eval' e s) () in
@@ -304,9 +373,17 @@ let is_val e =
   | None -> true
   | _ -> false
 
+let eval_cps e_cps e' =
+  match e_cps with
+  | Fun (x, e) as f -> eval' (App (f, e')) [] 0 ()
+  | _ -> failwith "bad"
+
 let eval e = 
-  let c = cps e [] in
-  fst (eval' (c (fun e -> e)) [] 0 ())
+  (* let c = cps e in
+  fst (eval' (c (fun e -> e)) [] 0 ()) *)
+  let k = fresh_id () in
+  fst (eval_cps (cps2 e) (Fun (k, (Var k))))
+
   (* threads := [(!max_tid), (eval' e [])];
   let thread_to_run = ref 0 in
   let out = ref None in
