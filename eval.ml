@@ -16,6 +16,25 @@ type store = (string * expr) list
 (* let threads = ref [] *)
 (* let max_tid = ref 0 *)
 
+let rec thread_e e x e' =
+  match e with
+  | Var x' -> if x' = x then e' else Var x'
+  | Int i -> Int i
+  | Float f -> Float f
+  | Bool b -> Bool b
+  | String s -> String s
+  | Unop (op, e) -> Unop (op, thread_e e x e')
+  | Binop (op, e1, e2) -> Binop (op, thread_e e1 x e', thread_e e2 x e')
+  | If (e1, e2, e3) -> If (thread_e e1 x e', thread_e e2 x e', thread_e e3 x e')
+  | Def (e1, e2) -> Def (thread_e e1 x e', thread_e e2 x e')
+  | Fun (x', e) -> Fun (x', thread_e e x e')
+  | List l -> List (List.map (fun e -> thread_e e x e') l)
+  | App (e1, e2) -> App (thread_e e1 x e', thread_e e2 x e')
+  | Tid t -> Tid t
+  | None -> None
+  | Ref (r, t) -> Ref (ref (thread_e !r x e'), t)
+  | Seq (e1, e2) -> Seq (thread_e e1 x e', thread_e e2 x e')
+
 let rec add_var (s:store) (x:string) (v:expr) =
   match s with
   | [] -> [(x,v)]
@@ -42,6 +61,16 @@ let fresh_id : (unit -> string) =
   fun () ->
     let x = "$tmp" ^ string_of_int !n in
     n := !n + 1; x
+
+let z_comb () = 
+  let f = fresh_id () in
+  let x = fresh_id () in
+  let y = fresh_id () in
+  let x' = fresh_id () in
+  let y' = fresh_id () in
+  let p1 = Fun (x, App (Var f, Fun (y, (App (App (Var x, Var x), Var y))))) in
+  let p2 = Fun (x', App (Var f, Fun (y', (App (App (Var x', Var x'), Var y'))))) in
+  Fun (f, App (p1, p2))
 
 let rec cps (e:expr) (s:store) : expr =
   match e with
@@ -96,6 +125,27 @@ let rec cps (e:expr) (s:store) : expr =
     end
   | Def (e1, e2) -> begin
       match e1 with
+      | Binop (Eq, Var x, Fun (x', e')) -> begin
+        let k = fresh_id () in
+        let p = fresh_id () in
+        let a = fresh_id () in
+        let f = (Fun (a, Fun (x', e'))) in
+        let f' = thread_e f x (Var a) in
+        let c' = App (z_comb (), f') in
+        let f'' = thread_e (Fun (x', e')) x c' in
+        print_newline ();
+        print_endline (string_of_expr (Fun (x', e')));
+        print_newline ();
+        print_endline (string_of_expr f');
+        print_newline ();
+        print_endline (string_of_expr f);
+        print_newline ();
+        print_endline (string_of_expr c');
+        print_newline ();
+        print_endline (string_of_expr (cps f'' s));
+        print_newline ();
+        Fun (k, App (cps f'' s, Fun (p, App (cps e2 (add_var s x (Var p)), Var k))))
+      end
       | Binop (Eq, Var x, e) -> cps (App (Fun (x, e2), e)) s
       | _ -> raise InvalidGuard
     end
@@ -202,7 +252,7 @@ let rec eval_if e1 e2 e3 s =
 and eval_app e1 e2 s =
   match eval' e1 s with
   | Fun (x, e), s -> let (e2', s') = eval' e2 s in eval' e (add_var s' x e2') 
-  | _ -> raise InvalidApp
+  | e,s -> print_endline ("ERROR: " ^ (string_of_expr e)); raise InvalidApp
 
 and eval_seq e1 e2 s =
   let (e1', s') = eval' e1 s in
