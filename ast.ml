@@ -16,6 +16,7 @@ type binop =
   | Or
   | Cons
   | Proj
+  | RefAssign
 
 type unop =
   | Not
@@ -27,6 +28,8 @@ type unop =
   | Join
   | Joinall
   | CThread
+  | CreateRef
+  | Deref
 
 type expr = 
   | Var of string
@@ -43,10 +46,7 @@ type expr =
   | App of expr * expr
   | Tid of Thread.t
   | None
-  | CreateRef of expr
   | Ref of expr ref * Mutex.t
-  | Deref of string
-  | RefAssign of string * expr
   | Seq of expr * expr
 
 let string_of_binop = function
@@ -66,6 +66,7 @@ let string_of_binop = function
   | Or -> "Or"
   | Cons -> "Cons"
   | Proj -> "Proj"
+  | RefAssign -> "RefAssign"
 
 let string_of_unop = function
   | Not -> "Not"
@@ -77,6 +78,8 @@ let string_of_unop = function
   | Join -> "Join"
   | Joinall -> "Joinall"
   | CThread -> "CThread"
+  | CreateRef -> "CreateRef"
+  | Deref -> "Deref"
 
 let rec string_of_expr = function
   | Var x -> "Var " ^ x
@@ -95,8 +98,5 @@ let rec string_of_expr = function
   | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
   | None -> "None"
-  | CreateRef e -> "CreateRef (" ^ (string_of_expr e) ^ ")"
   | Ref (e, _) -> "Ref (" ^ (string_of_expr !e) ^ ")"
-  | Deref e -> "Deref (" ^ e ^ ")"
-  | RefAssign (s, e) -> "RefAssign (s, " ^ (string_of_expr e) ^ ")"
   | Seq (e1, e2) -> "Seq(" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")" 

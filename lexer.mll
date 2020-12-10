@@ -64,7 +64,7 @@ rule read =
   | "none" { NONE }
   | "!" { DEREF }
   | ":=" { ASSIGN }
-  | "@" { CREATEREF }
+  | "ref" { CREATEREF }
   | ";" { SEQSEP }
   | string { STRING (Lexing.lexeme lexbuf) }
   | eof { EOF; }

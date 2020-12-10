@@ -97,6 +97,8 @@ bool_expr :
 	| UNLOCK { Unlock }
 	| LOCKALL { Lockall }
 	| UNLOCKALL { Unlockall }
+	| CREATEREF { CreateRef }
+	| DEREF { Deref }
 
 unop_expr :
 	| unop; expr { Unop ($1, $2) }
@@ -130,7 +132,5 @@ constructs :
 	| IF; expr; THEN; CASE; expr; CASE; expr { If ($2, $5, $7) }
 	| DEF; expr; IN; expr { Def ($2, $4) }
 	| NONE { None }
-	| CREATEREF; expr { CreateRef $2 }
-	| DEREF; STRING { Deref $2 }
-	| STRING; ASSIGN; expr { RefAssign ($1, $3) }
+	| expr; ASSIGN; expr { Binop (RefAssign, $1, $3) }
 	;
