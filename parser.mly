@@ -36,10 +36,10 @@ expr :
 	| str { $1 }
 	| arith_expr { $1 }
 	| bool_expr { $1 }
+	| unop_expr { $1 }
 	| data_struct { $1 }
 	| func { $1 }
 	| app { $1 }
-	| sync { $1 }
 	| constructs { $1 }
 	| NONE { None }
 	;
@@ -81,15 +81,29 @@ bool :
 	| LT { LT }
 	| GTE { GTE }
 	| LTE { LTE }
-	| AND { AND }
-	| OR { OR }
+	| AND { And }
+	| OR { Or }
 	;
 
 bool_expr :
 	| expr; bool_binop; expr { Binop ($2, $1, $3) } 
-	| NOT; expr { Unop (NOT, $2) }
 	| bool { $1 }
 	;
+
+%inline unop :
+	| NOT { Not }
+	| JOIN {Join }
+	| LOCK { Lock }
+	| UNLOCK { Unlock }
+	| LOCKALL { Lockall }
+	| UNLOCKALL { Unlockall }
+
+unop_expr :
+	| unop; expr { Unop ($1, $2) }
+	| JOINALL { Unop (Joinall, None) }
+	| PRINT; LPAREN; expr; RPAREN { Unop (Print, $3) }
+	| CTHREAD; LPAREN; expr; RPAREN { Unop (CThread, $3) }
+
 
 expr_list :
 	| RBRACK { [] }
@@ -101,8 +115,8 @@ lst : LBRACK; expr_list { List $2 }
 
 data_struct :
 	| lst { $1 }
-	| expr; CONS; expr { Binop (CONS, $1, $3) }
-	| lst; DOT; expr { Binop (PROJ, $1, $3) }
+	| expr; CONS; expr { Binop (Cons, $1, $3) }
+	| lst; DOT; expr { Binop (Proj, $1, $3) }
 	;
 
 func :
@@ -111,16 +125,6 @@ func :
 app :
 	| func; expr { App ($1, $2) }
 	| var; LPAREN; expr; RPAREN { App ($1, $3) }
-	
-sync :
-	| CTHREAD; LPAREN; expr; RPAREN;{ CThread $3 }
-	| JOIN; LPAREN; expr; RPAREN { Join $3 }
-	| JOINALL { Joinall }
-	| LOCK; expr { Lock $2 }
-	| UNLOCK; expr { Unlock $2 }
-	| LOCKALL; expr { Lockall $2 }
-	| UNLOCKALL; expr { Unlockall $2 }
-	;
 
 constructs :
 	| IF; expr; THEN; CASE; expr; CASE; expr { If ($2, $5, $7) }
@@ -129,5 +133,4 @@ constructs :
 	| CREATEREF; expr { CreateRef $2 }
 	| DEREF; STRING { Deref $2 }
 	| STRING; ASSIGN; expr { RefAssign ($1, $3) }
-	| PRINT; LPAREN; expr; RPAREN; { Print $3 }
 	;

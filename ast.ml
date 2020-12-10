@@ -12,13 +12,21 @@ type binop =
   | GT
   | LTE
   | GTE
-  | AND
-  | OR
-  | CONS
-  | PROJ
+  | And
+  | Or
+  | Cons
+  | Proj
 
 type unop =
-  | NOT
+  | Not
+  | Print
+  | Lock
+  | Unlock
+  | Lockall
+  | Unlockall
+  | Join
+  | Joinall
+  | CThread
 
 type expr = 
   | Var of string
@@ -33,15 +41,7 @@ type expr =
   | Fun of string * expr
   | List of expr list
   | App of expr * expr
-  | CThread of expr
   | Tid of Thread.t
-  | Print of expr
-  | Lock of expr
-  | Unlock of expr
-  | Lockall of expr
-  | Unlockall of expr
-  | Join of expr
-  | Joinall
   | None
   | CreateRef of expr
   | Ref of expr ref * Mutex.t
@@ -62,13 +62,21 @@ let string_of_binop = function
   | GT -> "GT"
   | LTE -> "LTE"
   | GTE -> "GTE"
-  | AND -> "AND"
-  | OR -> "OR"
-  | CONS -> "CONS"
-  | PROJ -> "PROJ"
+  | And -> "And"
+  | Or -> "Or"
+  | Cons -> "Cons"
+  | Proj -> "Proj"
 
 let string_of_unop = function
-  | NOT -> "NOT"
+  | Not -> "Not"
+  | Print -> "Print"
+  | Lock -> "Lock"
+  | Unlock -> "Unlock"
+  | Lockall -> "Lockall"
+  | Unlockall -> "Unlockall"
+  | Join -> "Join"
+  | Joinall -> "Joinall"
+  | CThread -> "CThread"
 
 let rec string_of_expr = function
   | Var x -> "Var " ^ x
@@ -85,15 +93,7 @@ let rec string_of_expr = function
   | List [] -> "List ([])"
   | List (h::t) -> "List (" ^ (string_of_expr h) ^ ", " ^ (string_of_expr (List t))  ^ ")"
   | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
-  | CThread e -> "Thread (" ^ (string_of_expr e) ^ ")"
   | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
-  | Print e -> "Print (" ^ (string_of_expr e) ^ ")"
-  | Lock e -> "Lock (" ^ (string_of_expr e) ^ ")"
-  | Unlock e -> "Unlock (" ^ (string_of_expr e) ^ ")"
-  | Lockall e -> "Lockall (" ^ (string_of_expr e) ^ ")"
-  | Unlockall e -> "Unlockall (" ^ (string_of_expr e) ^ ")"
-  | Join e -> "Join (" ^ (string_of_expr e) ^ ")"
-  | Joinall -> "Joinall"
   | None -> "None"
   | CreateRef e -> "CreateRef (" ^ (string_of_expr e) ^ ")"
   | Ref (e, _) -> "Ref (" ^ (string_of_expr !e) ^ ")"
