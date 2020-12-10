@@ -1,1 +1,2 @@
-[1 + 1, "hello", true, [], fun x => x, ref 0]
+def fact = fun n => if n = 0 then | 1 | n * fact (n - 1) in
+fact (3)
