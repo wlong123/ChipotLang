@@ -1,4 +1,3 @@
-open Thread
 type binop =
   | Add
   | Sub
@@ -44,7 +43,7 @@ type expr =
   | Fun of string * expr
   | List of expr list
   | App of expr * expr
-  | Tid of Thread.t
+  | Tid of int
   | None
   | Ref of expr ref * Mutex.t
   | Seq of expr * expr
@@ -96,7 +95,7 @@ let rec string_of_expr = function
   | List [] -> "List ([])"
   | List (h::t) -> "List (" ^ (string_of_expr h) ^ ", " ^ (string_of_expr (List t))  ^ ")"
   | App (e1, e2) -> "App (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
-  | Tid t -> "Thread ID: " ^ string_of_int (Thread.id t)
+  | Tid t -> "Thread ID: " ^ string_of_int t
   | None -> "None"
   | Ref (e, _) -> "Ref (" ^ (string_of_expr !e) ^ ")"
   | Seq (e1, e2) -> "Seq(" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")" 

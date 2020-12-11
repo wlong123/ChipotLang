@@ -13,8 +13,8 @@ exception InvalidLock
 
 type store = (string * expr) list
 
-(* let threads = ref [] *)
-(* let max_tid = ref 0 *)
+let threads = ref []
+let max_tid = ref 0
 
 let rec thread_e e x e' =
   match e with
@@ -53,7 +53,7 @@ let rec expr_to_string e =
   | String s -> s
   | Fun _ -> "Function"
   | List l -> "[" ^ (List.fold_left (fun x e -> x ^ (expr_to_string e) ^ ", ") "" l) ^ "]"
-  | Tid t -> "Thread " ^ (string_of_int (Thread.id t))
+  | Tid t -> "Thread " ^ (string_of_int t)
   | _ -> string_of_expr e (* TODO *)
 
 let fresh_id : (unit -> string) =
@@ -107,9 +107,9 @@ let rec cps (e:expr) (s:store) : expr =
       Fun (k, App (Var k, Tid t))
     end
   | Unop (op, e) -> begin
-      let k = fresh_id () in
-      let k' = fresh_id () in
-      Fun (k, App ((cps e s), Fun(k', App (Var k, (Unop (op, Var k'))))))
+        let k = fresh_id () in
+        let k' = fresh_id () in
+        Fun (k, App ((cps e s), Fun(k', App (Var k, (Unop (op, Var k'))))))
     end
   | Binop (op, e1, e2) -> begin
       let k = fresh_id () in
@@ -133,7 +133,7 @@ let rec cps (e:expr) (s:store) : expr =
         let f' = thread_e f x (Var a) in
         let c' = App (z_comb (), f') in
         let f'' = thread_e (Fun (x', e')) x c' in
-        print_newline ();
+        (* print_newline ();
         print_endline (string_of_expr (Fun (x', e')));
         print_newline ();
         print_endline (string_of_expr f');
@@ -143,7 +143,7 @@ let rec cps (e:expr) (s:store) : expr =
         print_endline (string_of_expr c');
         print_newline ();
         print_endline (string_of_expr (cps f'' s));
-        print_newline ();
+        print_newline (); *)
         Fun (k, App (cps f'' s, Fun (p, App (cps e2 (add_var s x (Var p)), Var k))))
       end
       | Binop (Eq, Var x, e) -> cps (App (Fun (x, e2), e)) s
@@ -186,7 +186,7 @@ let eval_unop op e s =
   match op, v with
   | Not, Bool b -> Bool (not b)
   | Print, _ -> expr_to_string v |> print_endline; None
-  | Join, Tid t -> Thread.join t; None
+  (* | Join, Tid t -> Thread.join t; None *)
   (* | Joinall, _ -> List.iter (fun t -> if Thread.id t <> Thread.id tid then Thread.join t else ()) !threads; None *)
   | Joinall, _ -> failwith "failure"
   | Lock, Ref (ptr, l) -> Mutex.lock l; Ref (ptr, l)
@@ -202,7 +202,11 @@ let eval_unop op e s =
       | Ref (ptr, l) -> Mutex.unlock l; Ref (ptr, l)
       | _ -> raise InvalidLock in
     List (List.map unlock_elem lst)
-  | CThread, _ -> failwith "TODO"
+  | CThread, _ -> begin
+      max_tid := !max_tid + 1;
+      threads := (!max_tid, (v,s))::(!threads);
+      Tid !max_tid
+  end
   | CreateRef, _ -> Ref (ref v, Mutex.create ())
   | Deref, Ref (r, _)  -> !r
   | _ -> raise InvalidUnopType
@@ -238,54 +242,63 @@ let eval_lst lst s =
   let get_elem = function
     | Var x -> get_var s x
     | _ -> failwith "Invalid list" in
-  List (List.map get_elem lst), s
+  List (List.map get_elem lst)
 
-let rec eval_if e1 e2 e3 s =
+let rec eval_if e1 e2 e3 s n =
   let v1 = match e1 with
     | Var v1 -> get_var s v1
     | _ -> failwith "Variable not in store"
   in
   match v1 with
-  | Bool b -> if b then eval' e2 s else eval' e3 s
+  | Bool b -> if b then eval' e2 s (n-1) else eval' e3 s (n-1)
   | _ -> raise InvalidGuard
 
-and eval_app e1 e2 s =
-  match eval' e1 s with
-  | Fun (x, e), s -> let (e2', s') = eval' e2 s in eval' e (add_var s' x e2') 
-  | e,s -> print_endline ("ERROR: " ^ (string_of_expr e)); raise InvalidApp
+and eval_app e1 e2 s n =
+  match eval' e1 s (n-1) with
+  | Fun (x, e), s, n -> begin
+    if n = 0 then App (Fun (x,e), e2), s, n else
+    let (e2', s', n) = eval' e2 s (n-1) in
+    if n = 0 then App (Fun (x,e), e2'), s', n else
+    eval' e (add_var s' x e2') (n-1)
+  end
+  | e, s, n -> begin
+    if n = 0 then App (e, e2), s, n else raise InvalidApp
+  end
 
-and eval_seq e1 e2 s =
-  let (e1', s') = eval' e1 s in
-  eval' e2 s'
+and eval_seq e1 e2 s n =
+  let (e1', s', n) = eval' e1 s (n-1) in
+  if n = 0 then Seq (e1', e2), s', n else
+  eval' e2 s' n
 
-and eval' e s = 
-  print_endline (string_of_expr e);
-  let tid = Thread.self () in
+and eval' e s n = 
+  (* print_endline (string_of_expr e); *)
+  (* let tid = Thread.self () in *)
+  if n = 0 then e, s, n else
   match e with
-  | Var x -> get_var s x, s
-  | Int i -> Int i, s
-  | Float f -> Float f, s
-  | Bool b -> Bool b, s
-  | String s' -> String s', s
-  | Unop (op, e) -> eval_unop op e s, s
-  | Binop (op, e1, e2) -> eval_binop op e1 e2 s, s
-  | If (e1, e2, e3) -> eval_if e1 e2 e3 s
+  | Var x -> get_var s x, s, n
+  | Int i -> Int i, s, n
+  | Float f -> Float f, s, n
+  | Bool b -> Bool b, s, n
+  | String s' -> String s', s, n
+  | Unop (op, e) -> eval_unop op e s, s, n
+  | Binop (op, e1, e2) -> eval_binop op e1 e2 s, s, n
+  | If (e1, e2, e3) -> eval_if e1 e2 e3 s n
   | Def (e1, e2) -> failwith "Handled by CPS translation"
-  | Fun (x, e) -> Fun (x, e), s
-  | List [] -> List [], s
-  | App (e1, e2) -> eval_app e1 e2 s
-  | None -> None, s
-  | Tid t -> Tid t, s
-  | Ref (e, l) -> Ref (e, l), s
-  | Seq (e1, e2) -> eval_seq e1 e2 s
-  | List lst -> eval_lst lst s
+  | Fun (x, e) -> Fun (x, e), s, n
+  | List [] -> List [], s, n
+  | App (e1, e2) -> eval_app e1 e2 s n
+  | None -> None, s, n
+  | Tid t -> Tid t, s, n
+  | Ref (e, l) -> Ref (e, l), s, n
+  | Seq (e1, e2) -> eval_seq e1 e2 s n
+  | List lst -> eval_lst lst s, s, n
 
-let pick_run_length unit = 10
+let pick_run_length unit = 25
 
 let rec add_to_list l x i =
   match l with
   | [] -> []
-  | h :: t -> if i = 0 then x :: t else h :: (add_to_list t x (i-1))
+  | (x', s) :: t -> if x' = i then x :: t else (x', s) :: (add_to_list t x i)
 
 let is_val e =
   match e with 
@@ -300,26 +313,29 @@ let is_val e =
   | None -> true
   | _ -> false
 
-let eval_cps e_cps e' =
+let eval_cps e_cps e' s n =
   match e_cps with
-  | Fun (x, e) as f -> eval' (App (f, e')) []
-  | _ -> failwith "bad"
+  | Fun (x, e) as f -> eval' (App (f, e')) s n
+  | e -> eval' e s n
+
+let pick_next_thread l =
+  let index_to_run = Random.int (List.length l) in
+  List.nth l index_to_run
 
 let eval e = 
-  let k = fresh_id () in
-  fst (eval_cps (cps e []) (Fun (k, (Var k))))
-
-(* threads := [(!max_tid), (eval' e [])];
-   let thread_to_run = ref 0 in
-   let out = ref None in
-   while List.mem_assoc 0 (!threads) do
-   thread_to_run := if !thread_to_run >= List.length (!threads) then 0 else !thread_to_run;
-   let to_eval = List.assoc (!thread_to_run) (!threads) in
-   let e', s' = to_eval (pick_run_length ()) () in
-   if is_val e' then (
-    if (!thread_to_run) = 0 then out := e' else (); 
-    threads := List.remove_assoc (!thread_to_run) (!threads)
-   )
-   else threads := add_to_list (!threads) (!thread_to_run, (eval' e' s')) (!thread_to_run)
-   done;
-   !out *)
+  let main_e = cps e [] in
+  threads := (0, (main_e, []))::!threads;
+  let out = ref None in
+  while List.mem_assoc 0 (!threads) do
+    let (thread_to_run, (e, s)) = pick_next_thread !threads in
+    print_endline ("About to start thread: " ^ (string_of_int thread_to_run));
+    let k = fresh_id () in
+    let e', s', _ = eval_cps e (Fun (k, (Var k))) s (pick_run_length ()) in
+    print_endline ("Finished thread: " ^ (string_of_int thread_to_run));
+    if is_val e' then (
+      if (thread_to_run) = 0 then out := e' else (); 
+      threads := List.remove_assoc (thread_to_run) (!threads)
+      )
+    else threads := add_to_list (!threads) (thread_to_run, (e', s')) (thread_to_run)
+  done;
+  !out
