@@ -192,16 +192,22 @@ let eval_unop op e s n =
   | Lock, Ref (ptr, l) -> if Mutex.try_lock l then None, s, n else Unop (Lock, e), s, 0
   | Lockall, List lst -> begin
       let lock_elem = function
-        | Ref (ptr, l) -> Mutex.lock l; Ref (ptr, l)
+        | Ref (ptr, l) -> Mutex.lock l; None
         | _ -> raise InvalidLock in
-      List (List.map lock_elem lst), s, n
+
+        let is_locked = function
+        | Ref (ptr, l) -> if Mutex.try_lock l then (Mutex.unlock l; true) else false
+        | _ -> raise InvalidLock in
+
+      let all_unlocked = List.fold_left (fun b e -> b && (is_locked e)) true lst in
+      if all_unlocked then (ignore (List.map lock_elem lst); None, s, n) else Unop (Lockall, e), s, 0
     end
   | Unlock, Ref (ptr, l) -> Mutex.unlock l; None, s, n
   | Unlockall, List lst -> 
     let unlock_elem = function
-      | Ref (ptr, l) -> Mutex.unlock l; Ref (ptr, l)
+      | Ref (ptr, l) -> Mutex.unlock l
       | _ -> raise InvalidLock in
-    List (List.map unlock_elem lst), s, n
+    ignore (List.map unlock_elem lst); None, s, n
   | CThread, _ -> begin
       max_tid := !max_tid + 1;
       threads := (!max_tid, (v,s))::(!threads);
@@ -241,7 +247,7 @@ let eval_binop op e1 e2 s =
 let eval_lst lst s =
   let get_elem = function
     | Var x -> get_var s x
-    | _ -> failwith "Invalid list" in
+    | e -> print_endline (string_of_expr e);  failwith "Invalid list" in
   List (List.map get_elem lst)
 
 let rec eval_if e1 e2 e3 s n =
