@@ -1,0 +1,7 @@
+def l = ref [1] in
+def t1 = thread (l := [2]) in
+def t2 = thread (l := [3]) in
+joinall;
+print (!l);
+l := [0];
+print (!l)
