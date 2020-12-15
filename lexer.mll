@@ -45,7 +45,7 @@ rule read =
   | "\"" { QUOTE }
   | "if" { IF }
   | "then" { THEN }
-  | "|" { CASE }
+  | "else" { ELSE }
   | "fun" { FUN }
   | "def" { DEF }
   | "in" { IN }

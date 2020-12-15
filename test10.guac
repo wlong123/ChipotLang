@@ -3,6 +3,4 @@ def a = 3 in
 def b = 4 in
 def square = fun x => x^2 in
 def c2 = square(square(a)) + square(b) in
-if c2 = 97 then
-| true
-| false
+if c2 = 97 then true else false

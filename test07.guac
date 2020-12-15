@@ -1,6 +1,6 @@
 << swap two refs with odd number of threads to show (un)lockall primitives >>
-def x = @ 0 in
-def y = @ 1 in
+def x = ref 0 in
+def y = ref 1 in
 def swap = fun z =>
   lockall [x, y];
   def tmp = !x in
@@ -9,9 +9,8 @@ def swap = fun z =>
   unlockall [x, y]
 in
 def loop = fun n =>
-  if (n = 0) then
-  | none
-  | thread (swap (none)); loop (n - 1)
+  if (n = 0) then none
+  else thread (swap (none)); loop (n - 1)
 in
 loop (3);
 joinall;

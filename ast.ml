@@ -47,6 +47,7 @@ type expr =
   | None
   | Ref of expr ref * Mutex.t
   | Seq of expr * expr
+  | Thunk of (expr -> expr)
 
 let string_of_binop = function
   | Add -> "Add"
@@ -99,3 +100,4 @@ let rec string_of_expr = function
   | None -> "None"
   | Ref (e, _) -> "Ref (" ^ (string_of_expr !e) ^ ")"
   | Seq (e1, e2) -> "Seq(" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")" 
+  | Thunk fn -> "Thunk()"

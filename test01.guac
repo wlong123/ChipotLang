@@ -1,6 +1,9 @@
 << recursive fibonacci numbers >>
 def fib = fun n =>
-  if n <= 1 then
-  | n
-  | fib (n - 1) + fib (n - 2) in
+  if n <= 1 then n
+  else 
+    def n1 = n in
+    def n2 = n1 in
+    fib (n1 - 1) + fib (n2 - 2) 
+in
 fib (12)
