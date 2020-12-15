@@ -54,7 +54,7 @@ let z_comb () =
   Fun (f, App (p1, p2))
 
 
-let eval_unop op e s =
+let rec eval_unop op e s =
   let v = match e with
     | Var x -> get_var s x 
     | _ -> failwith ("Variable not in store: " ^ (string_of_expr e))
@@ -83,11 +83,9 @@ let eval_unop op e s =
   | Deref, Ref (r, _)  -> !r
   | _ -> raise InvalidUnopType
 
-let eval_binop op e1 e2 s =
-  let v1, v2 = match e1, e2 with
-    | Var x1, Var x2 -> get_var s x1, get_var s x2  
-    | _ -> failwith ("Variable not in store: " ^ (string_of_expr e1))
-  in
+and eval_binop op e1 e2 s =
+  let v1, s1 = eval' e1 s in
+  let v2, s2 = eval' e2 s1 in
   match op, v1, v2 with
   | Add, Int i1, Int i2 -> Int (i1 + i2)
   | Sub, Int i1, Int i2 -> Int (i1 - i2)
@@ -108,29 +106,24 @@ let eval_binop op e1 e2 s =
   | Cons, e', List e -> List (e'::e)
   | Proj, List e, Int i -> List.nth e i
   | RefAssign, Ref (r, _), _ -> r := v2; None
-  | _ -> print_endline (string_of_expr v1); print_endline (string_of_expr v2); raise InvalidBinopType
+  | _ -> raise InvalidBinopType
 
-let eval_lst lst s =
+and eval_lst lst s =
   let get_elem = function
     | Var x -> get_var s x
     | _ -> failwith "Invalid list" in
   List (List.map get_elem lst), s
 
-
-let rec eval_if e1 e2 e3 s =
-  let v1, s' = (* TODO *)
-    (* eval' e1 s *)
-    match e1 with
-    | Var v1 -> get_var s v1, s
-    | _ -> failwith ("Variable not in store: " ^ (string_of_expr e1))
-  in
+and eval_if e1 e2 e3 s =
+  let v1, s' = eval' e1 s in
   match v1 with
   | Bool b -> if b then eval' e2 s' else eval' e3 s'
   | _ -> raise InvalidGuard
 
 and eval_app e1 e2 s =
   match eval' e1 s with
-  | Fun (x, e), s -> let (e2', s') = eval' e2 s in eval' e (add_var s' x e2') 
+  | Fun (x, e), s ->
+    let (e2', s') = eval' e2 s in eval' e (add_var s' x e2') 
   | _ -> raise InvalidApp
 
 and eval_seq e1 e2 s =
@@ -138,8 +131,7 @@ and eval_seq e1 e2 s =
   eval' e2 s'
 
 and eval' e s = 
-  (* print_endline (string_of_expr e); *)
-  let tid = Thread.self () in
+  print_endline (string_of_expr e);
   match e with
   | Var x -> get_var s x, s
   | Int i -> Int i, s
@@ -159,127 +151,91 @@ and eval' e s =
   | Seq (e1, e2) -> eval_seq e1 e2 s
   | List lst -> eval_lst lst s
 
-let rec cps (e:expr) (s:store) : expr =
+let rec cps_aux (e:expr) (s:store) (k:expr): expr =
   match e with
-  | Var x -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, get_var s x))
-    end
-  | Int i -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, Int i))
-    end
-  | Float f -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, Float f))
-    end
-  | Bool b -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, Bool b))
-    end
-  | String s -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, String s))
-    end
-  | None -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, None))
-    end
-  | Ref (ptr, l) -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, Ref (ptr, l)))
-    end
-  | Tid t -> begin
-      let k = fresh_id () in
-      Fun (k, App (Var k, Tid t))
-    end
+  | Var x -> App (k, get_var s x)
+  | Int _ | Float _ | Bool _ | String _ | None  | Ref _ | Tid _ -> App (k, e)
   | Unop (op, e) -> begin
-      let k = fresh_id () in
-      let k' = fresh_id () in
-      Fun (k, App ((cps e s), Fun(k', App (Var k, (Unop (op, Var k'))))))
+      let n = fresh_id () in
+      cps e s (Fun (n, App (k, (Unop (op, Var n)))))
     end
   | Binop (op, e1, e2) -> begin
-      let k = fresh_id () in
       let n = fresh_id () in
       let m = fresh_id () in
+      let r = fresh_id () in
       let n_op_m = Binop (op, Var n, Var m) in
-      Fun (k, App (cps e1 s, (Fun (n, (App (cps e2 s, (Fun (m, App (Var k, n_op_m)))))))))
+      cps e1 s (Fun (n, cps e2 s (Fun (m,  App (k, Int 0)))))
     end
   | If (e1, e2, e3) -> begin
-      let k = fresh_id () in
       let b = fresh_id () in
-      Fun (k, App (cps e1 s, Fun (b, If (Var b, App (cps e2 s, Var k), App (cps e3 s, Var k)))))
+      cps e1 s (Fun (b, If (Var b, cps e2 s k, cps e3 s k)))
     end
   | Def (e1, e2) -> begin
-      let rec insert_combinator x e f =
-        print_endline (string_of_expr e);
+      let rec apply_rec_removal_trick x e f =
         match e with
-        | Var x' -> if x' = x then (print_endline ("REPLACING [" ^ (string_of_expr e) ^ "] WITH [" ^ (string_of_expr f) ^ "]"); f) else Var x'
-        | Int _ | Float _ | Bool _ | String _ | None | Tid _ | Ref _ -> e
-        | Unop (op, e') -> Unop (op, insert_combinator x e' f)
-        | Binop (op, e1, e2) -> Binop (op, (insert_combinator x e1 f), (insert_combinator x e2 f))
-        | If (e1, e2, e3) -> If ((insert_combinator x e1 f), (insert_combinator x e2 f), (insert_combinator x e3 f))
-        | Def (Binop (Eq, String x', e1), e2) ->
-          (* if x' = x then Def (Binop(Eq, String x', e1), e2) else *)
-          Def (Binop(Eq, String x', (insert_combinator x e1 f)), (insert_combinator x e2 f))
+        | Var x' -> if x' = x then App(f, f) else Var x'
+        | Int _ | Float _ | Bool _ | String _ | None | Tid _ -> e
+        | Ref (ptr, lock) -> ptr := apply_rec_removal_trick x !ptr f; e
+        | Unop (op, e') -> Unop (op, apply_rec_removal_trick x e' f)
+        | Binop (op, e1, e2) -> Binop (op, (apply_rec_removal_trick x e1 f), (apply_rec_removal_trick x e2 f))
+        | If (e1, e2, e3) -> If ((apply_rec_removal_trick x e1 f), (apply_rec_removal_trick x e2 f), (apply_rec_removal_trick x e3 f))
+        | Def (Binop (Eq, Var x', e1), e2) ->
+          if x' = x then Def (Binop(Eq, Var x', e1), e2)
+          else Def (Binop (Eq, Var x', (apply_rec_removal_trick x e1 f)), (apply_rec_removal_trick x e2 f))
+        | Def _ -> failwith "Impossible"
         | Fun (x', e') -> 
-          (* if x' = x then Fun (x', e') else *)
-          Fun (x', (insert_combinator x e' f))
+          if x' = x then Fun (x', e')
+          else Fun (x', (apply_rec_removal_trick x e' f))
         | List _ -> failwith "TODO"
-        | App (e1, e2) -> App ((insert_combinator x e1 f), (insert_combinator x e2 f))
-        | Seq (e1, e2) -> Seq ((insert_combinator x e1 f), (insert_combinator x e2 f))
-        | _ -> failwith "Error"
+        | App (e1, e2) -> App ((apply_rec_removal_trick x e1 f), (apply_rec_removal_trick x e2 f))
+        | Seq (e1, e2) -> Seq ((apply_rec_removal_trick x e1 f), (apply_rec_removal_trick x e2 f))
       in
-      let k = fresh_id () in
-      let p = fresh_id () in
+      let v = fresh_id () in
       match e1 with
       | Binop (Eq, Var x, Fun (x_bar, e_bar)) -> begin
-          let e = Fun (x_bar, e_bar) in
           let f = fresh_id () in
-          let e' = insert_combinator x e (Var f) in
-          let g = Fun (f, e') in
-          let z = z_comb () in
-          let zg = App (z, g) in
-          let zg' = insert_combinator f zg zg in (* Trying to substitute zg for f in the evaluated zg *)
-          print_endline ("f has ID: " ^ f);
-          print_endline ("z_comb is: " ^ (string_of_expr (eval' z s |> fst)));
-          print_endline ("zg is: " ^ (string_of_expr (eval' zg s |> fst)));
-          print_endline ("g is: " ^ (string_of_expr (eval' g s |> fst)));
-          print_endline ("zg' is: " ^ (string_of_expr (eval' zg' s |> fst)));
-          Fun (k, App (cps zg' (add_var s f zg'), Fun (p, App (cps e2 (add_var s x (Var p)), (Var k)))))
+          let e' = apply_rec_removal_trick x e_bar (Var f) in
+          let fn' = Fun (f, Fun (x_bar, e')) in
+          let fn = App (fn', fn') in
+          cps fn s (Fun (v, cps e2 (add_var s x (Var v)) k))
         end
-      | Binop (Eq, Var x, e) ->
-        Fun (k, App (cps e s, Fun (p, App (cps e2 (add_var s x (Var p)), (Var k)))))
-      | _ -> raise InvalidGuard
+      | Binop (Eq, Var x, e') -> cps e' s (Fun (v, cps e2 (add_var s x (Var v)) k))
+      | _ -> failwith "CPS WENT BAD"
     end
-  | Fun (x, e) -> begin
-      let k = fresh_id () in
+  | Fun (x, e1) -> begin
       let v = fresh_id () in
       let k' = fresh_id () in
-      Fun (k, App (Var k, Fun (v, Fun (k', App (cps e (add_var s x (Var v)), Var k')))))
+      App (k, Fun (v, Fun (k', cps e1 (add_var s x (Var v)) (Var k'))))
     end
   | App (e1, e2) -> begin
-      let k = fresh_id () in
       let f = fresh_id () in
       let v = fresh_id () in
-      let fvk = App (App (Var f, Var v), Var k) in
-      Fun (k, App (cps e1 s, Fun (f, (App (cps e2 s, Fun (v, fvk))))))
+      let fvk = App (App (Var f, Var v), k) in
+      cps e1 s (Fun (f, cps e2 s (Fun (v, fvk))))
     end
-  | Seq (e1, e2) -> begin
-      let k = fresh_id () in
-      let k' = fresh_id () in
-      let k'' = fresh_id () in
-      Fun (k, App (cps e1 s, Fun (k', (App (cps e2 s, Fun (k'', App (Var k, Seq (Var k', Var k''))))))))
-    end
+  | Seq (e1, e2) -> failwith "TODO"
   | List lst -> begin
-      let k = fresh_id () in
       let x1 = fresh_id () in
       let x2 = fresh_id () in
       match lst with
-      | [] -> Fun (k, App (Var k, List []))
+      | [] -> App (k, List [])
       | h::t ->
-        Fun (k, App (cps h s, Fun (x1, App (cps (List t) s, Fun (x2, App (Var k, Binop (Cons, Var x1, Var x2)))))))
+        cps h s (Fun (x1, cps (List t) s (Fun (x2, App (k, (Binop (Cons, Var x1, Var x2)))))))
     end
+
+and cps (e:expr) (s:store) (k:expr): expr =
+  cps_aux e s k
+(* match k with
+   | Fun _ -> cps_aux e s k
+   | Var x -> begin
+    try 
+      match (get_var s x) with
+      | Fun _ -> cps_aux e s k
+      | _ -> failwith ("Variable is not a continuation: " ^ (string_of_expr k) ^ ". Computation stopped at: " ^ (string_of_expr e))
+    with 
+    | _ -> failwith ("Continuation not found: " ^ (string_of_expr k) ^ "\nComputation stopped at: " ^ (string_of_expr e))
+   end
+   | _ -> failwith ("Parameter k is not a continuation: " ^ (string_of_expr k) ^ ". Computation stopped at: " ^ (string_of_expr e)) *)
 
 let pick_run_length unit = 10
 
@@ -307,8 +263,10 @@ let eval_cps e_cps e' =
   | _ -> failwith "bad"
 
 let eval e = 
-  let k = fresh_id () in
-  fst (eval_cps (cps e []) (Fun (k, (Var k))))
+  let x = fresh_id () in
+  let e_cps = cps e [] (Fun (x, Var x)) in
+  print_endline (string_of_expr e_cps);
+  eval' (e_cps) []
 
 (* threads := [(!max_tid), (eval' e [])];
    let thread_to_run = ref 0 in

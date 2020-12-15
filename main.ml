@@ -14,5 +14,5 @@ let () =
       exit 1 in
 
   print_string (string_of_expr e); print_newline ();
-  let e' = Eval.eval e in
+  let e' = fst (Eval.eval e) in
   print_string (string_of_expr e'); print_newline ()
