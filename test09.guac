@@ -1,3 +1,4 @@
+<< appending fibonacci sequence numbers to a log. (Similar to test08.guac) >>
 def log = ref [] in
 def fib = fun n =>
   if n <= 1 then n
