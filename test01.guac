@@ -1,4 +1,4 @@
-<< recursive fibonacci numbers >>
+<< recursive fibonacci numbers: expected output is 144 >>
 def fib = fun n =>
   if n <= 1 then n
   else 

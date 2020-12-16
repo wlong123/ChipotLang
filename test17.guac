@@ -1,7 +1,16 @@
-def l1 = ref [1] in
-def l2 = ref [2] in
-def t1 = thread (lockall [l1, l2]; l1 := [3]; unlockall [l1, l2]) in
-def t2 = thread (lockall [l1, l2]; l2 := [4]; unlockall [l1, l2]) in
+def log = ref [] in
+def fib = fun n =>
+  if n <= 1 then n
+  else 
+    def n' = n in
+    fib (n - 1) + fib (n' - 2) in
+def loop = fun n => 
+  if (n = 0) then none
+  else
+    thread (lock (log); log := (fib (n) :: !log); unlock (log));
+    loop (n - 1)
+in
+loop (5);
+loop (5);
 joinall;
-print (!l1);
-print (!l2)
+print (!log)

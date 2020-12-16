@@ -1,4 +1,4 @@
-<< pythagorean theorem >>
+<< pythagorean theorem: expected output is "true" >>
 def a = 3 in
 def b = 4 in
 def square = fun x => x^2 in

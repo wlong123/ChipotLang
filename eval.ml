@@ -142,6 +142,7 @@ let rec cps (e : expr) (s : store) : expr =
   | None -> Fun (k, App (Var k, None))
   | Ref (ptr, l) -> Fun (k, App (Var k, Ref (ptr, l)))
   | Tid t -> Fun (k, App (Var k, Tid t))
+  | Unop (CThread, e) -> Fun (k, App (Var k, Unop (CThread, cps e s)))
   | Unop (op, e) -> begin
       let v = fresh_id () in (* variable for value of e *)
       let unop_expr = Unop (op, Var v) in
@@ -250,7 +251,7 @@ let rec eval' (e : expr) (s : store) (n : int) : (expr * store * int) =
     | Ref (e, l) -> Ref (e, l), s, n
     | Thunk fn -> Thunk fn, s, n
 
-    | Var x -> get_var s x, s, n - 1
+    | Var x -> get_var s x, s, n
     | List lst -> eval_lst lst s n
     | App (Thunk e1, e2) -> let (v, s', n') = eval' e2 s n in e1 v, s', n' - 1
     | App (e1, e2) -> eval_app e1 e2 s n
@@ -268,19 +269,19 @@ and eval_unop (op : unop) (e : expr) (s : store) (n : int) : (expr * store * int
   if n' = 0 then Unop (op, v), s', n'
   else 
     match op, v with
-    | Not, Bool b -> Bool (not b), s', (n' - 1)
-    | Print, _ -> string_of_value v |> print_endline; None, s', (n' - 1)
+    | Not, Bool b -> Bool (not b), s', n'
+    | Print, _ -> string_of_value v |> print_endline; None, s', n'
     | Join, Tid t -> begin
         match List.assoc_opt t !threads with
         | Some _ -> Unop (Join, e), s', 0
-        | None -> None, s', (n' - 1)
+        | None -> None, s', n'
       end
     | Joinall, _ -> begin
-        if List.length !threads > 1 then Unop (Joinall, e), s', 0 (* TODO: ASK WILL *)
-        else None, s', (n' - 1)
+        if List.length !threads > 1 then Unop (Joinall, e), s', 0 
+        else None, s', n'
       end
     | Lock, Ref (ptr, l) -> begin
-        if Mutex.try_lock l then None, s', (n' - 1)
+        if Mutex.try_lock l then None, s', n'
         else Unop (Lock, e), s', 0
       end
     | Lockall, List lst -> begin
@@ -293,24 +294,23 @@ and eval_unop (op : unop) (e : expr) (s : store) (n : int) : (expr * store * int
           | Ref (ptr, l) -> if Mutex.try_lock l then (Mutex.unlock l; true) else false
           | _ -> raise (TypeError ("Cannot lock non-reference" ^ (string_of_expr ref))) in
         let all_unlocked = List.fold_left (fun acc ref -> acc && (is_locked ref)) true lst in
-        if all_unlocked then (ignore (List.map lock_ref lst); None, s', (n' - 1))
+        if all_unlocked then (ignore (List.map lock_ref lst); None, s', n')
         else Unop (Lockall, e), s', 0
       end
-    | Unlock, Ref (ptr, l) -> Mutex.unlock l; None, s', (n' - 1)
+    | Unlock, Ref (ptr, l) -> Mutex.unlock l; None, s', n'
     | Unlockall, List lst -> 
       let unlock_ref ref =
         match ref with
         | Ref (ptr, l) -> Mutex.unlock l
         | _ -> raise (TypeError ("Cannot unlock non-reference: " ^ (string_of_expr ref))) in
-      ignore (List.map unlock_ref lst); None, s', (n' - 1)
+      ignore (List.map unlock_ref lst); None, s', n'
     | CThread, _ -> begin
         max_tid := !max_tid + 1;
-        print_endline ("ADDING: " ^ (string_of_expr v));
         threads := (!max_tid, (v, s')) :: (!threads);
         Tid !max_tid, s', 0 (* Set to 0 to force re-scheduling *)
       end
-    | CreateRef, _ -> Ref (ref v, Mutex.create ()), s', (n - 1)
-    | Deref, Ref (r, _)  -> !r, s', (n - 1)
+    | CreateRef, _ -> Ref (ref v, Mutex.create ()), s', n'
+    | Deref, Ref (r, _)  -> !r, s', n'
     | Not, _ -> raise (TypeError ("Cannot negate non-boolean: " ^ (string_of_expr v)))
     | Join, _ -> raise (TypeError ("Cannot perform join on non-TID: " ^ (string_of_expr v)))
     | Lock, _ -> raise (TypeError ("Cannot lock non-reference: " ^ (string_of_expr v)))
@@ -366,33 +366,31 @@ and eval_binop (op : binop) (e1 : expr) (e2 : expr) (s : store) (n : int) : (exp
         | Proj, _, _ -> raise (TypeError ("Cannot get projection from non-list: " ^ (string_of_expr v1)))
         | RefAssign, _, _ -> raise (TypeError ("Cannot assign to non-reference: " ^ (string_of_expr v1)))
       in
-      (res, s'', n'' - 1)
+      (res, s'', n'')
 
 (** [eval_lst lst s n] is the result of evaluating [List lst] in store [s] after
     [n] steps of computation.
     Requires: [s] has no duplicate bindings. *)
 and eval_lst (lst : expr list) (s : store) (n : int) : (expr * store * int) =
-  let rec eval_elem lst acc s n =
+  let rec eval_elem lst acc s =
     match lst with
     | [] -> List (List.rev acc), s, n
     | h :: t ->
-      if n = 0 then List ((List.rev acc) @ (h :: t)), s, n
-      else 
-        let h', s', n' = eval' h s n in
-        if n' = 0 then List ((List.rev acc) @ (h' :: t)), s', n'
-        else eval_elem t (h' :: acc) s' n'
+      let h', s', n' = eval' h s n in
+      if n' = 0 then List ((List.rev acc) @ (h' :: t)), s', n'
+      else eval_elem t (h' :: acc) s'
   in
-  eval_elem lst [] s n
+  eval_elem lst [] s
 
 (** [eval_if e1 e2 e3 s n] is the result of evaluating [If (e1, e2, e3)] in
     store [s] after [n] steps of computation.
     Requires: [s] has no duplicate bindings. *)
 and eval_if (e1 : expr) (e2 : expr) (e3 : expr) (s : store) (n : int) : (expr * store * int) =
-  let v1, s', n' = eval' e1 s n in
+  let v1, s', n' = eval' e1 s (n - 1) in
   if n' = 0 then If (v1, e2, e3), s', n'
   else 
     match v1 with
-    | Bool b -> if b then eval' e2 s' n' else eval' e3 s' n'
+    | Bool b -> if b then eval' e2 s' (n' - 1) else eval' e3 s' (n' - 1)
     | _ when not (is_val v1) -> eval_if v1 e2 e3 s' n'
     | _ -> raise (TypeError ("Cannot use non-boolean value as guard for if-then-else expression"))
 
@@ -400,12 +398,12 @@ and eval_if (e1 : expr) (e2 : expr) (e3 : expr) (s : store) (n : int) : (expr * 
     after [n] steps of computation.
     Requires: [s] has no duplicate bindings. *)
 and eval_app (e1 : expr) (e2 : expr) (s : store) (n : int) : (expr * store * int) =
-  let (v1, s', n') = eval' e1 s n in
+  let (v1, s', n') = eval' e1 s (n - 1) in
   if n' = 0 then App (v1, e2), s', n'
   else
     match v1 with
     | Fun (x, e) as f -> begin
-        let (v2, s'', n'') = eval' e2 s' n' in
+        let (v2, s'', n'') = eval' e2 s' (n' - 1) in
         if n'' = 0 then App (f, v2), s'', n''
         else eval' e (add_var s'' x v2) (n'' - 1)
       end
@@ -416,7 +414,7 @@ and eval_app (e1 : expr) (e2 : expr) (s : store) (n : int) : (expr * store * int
     after [n] steps of computation.
     Requires: [s] has no duplicate bindings. *)
 and eval_seq (e1 : expr) (e2 : expr) (s : store) (n : int) : (expr * store * int) =
-  let (v1, s', n') = eval' e1 s n in
+  let (v1, s', n') = eval' e1 s (n - 1) in
   if n' = 0 then Seq (v1, e2), s', 0
   else eval' e2 s' (n' - 1)
 
@@ -426,7 +424,7 @@ and eval_seq (e1 : expr) (e2 : expr) (s : store) (n : int) : (expr * store * int
 
 (** [pick_run_length ()] is the number of steps of evaluation that a thread is
     allowed to run for before having to yield to the scheduler. *)
-let pick_run_length () : int = 1 (* (Random.int 25) + 1 *)
+let pick_run_length () : int = (Random.int 25) + 1
 
 (** [add_to_thread_list tid e s] updates thread [tid] in the global reference
     [threads] with its most recent expression [e] and store [s] to be used
@@ -459,21 +457,16 @@ let pick_next_thread () : (int * (expr * store)) =
 (** [eval e] is the result of evaluating expression [e], which is the abstract
     syntax tree generated from lexing and parsing a ChipotLang program. *)
 let eval (e : expr) : expr = 
+  Random.self_init ();
   let main_e = cps e [] in
-  (* print_endline (string_of_expr main_e); exit 1; *)
   let main_tid = 0 in
   threads := (main_tid, (main_e, [])) :: !threads;
   let out = ref None in
   while List.mem_assoc main_tid (!threads) do
     let (thread_to_run, (e, s)) = pick_next_thread () in
-    (if thread_to_run <> 0 then print_endline (string_of_int thread_to_run) else ());
     let k = fresh_id () in
     let cont = Fun (k, (Var k)) in
     let e', s', _ = eval_cps e cont s (pick_run_length ()) in
-    if thread_to_run <> 0 then begin
-      print_endline ("Thread " ^ (string_of_int thread_to_run) ^ " returned with the following after evaluating: " ^ (string_of_expr e));
-      print_endline (string_of_expr e');
-    end else ();
     if is_val e' then
       begin
         (if thread_to_run = main_tid then out := e' else ());
