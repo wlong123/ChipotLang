@@ -3,12 +3,13 @@ def log = ref [] in
 def add_id_to_log = fun n =>
   lock (log);
   log := (n :: !log);
+  print ("done");
   unlock (log)
 in
 def loop = fun n =>
   if (n = 0) then none
   else thread (add_id_to_log (n)); loop (n - 1)
 in
-loop (25);
+loop (2);
 joinall;
 print (!log)

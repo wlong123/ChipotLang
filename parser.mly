@@ -1,6 +1,6 @@
 
 %{
-open Ast
+	open Ast
 %}
 
 %token <int> INT
@@ -28,7 +28,9 @@ open Ast
 
 %%
 
-prog : expr EOF { $1 }
+prog : 
+	| expr EOF { $1 }
+	;
 
 expr :
 	| LPAREN; expr; RPAREN { $2 } 
@@ -44,9 +46,13 @@ expr :
 	| NONE { None }
 	;
 
-str : QUOTE; STRING; QUOTE { String $2 }
+str :
+	| QUOTE; STRING; QUOTE { String $2 }
+	;
 	
-var : STRING { Var $1 }
+var : 
+	| STRING { Var $1 }
+	;
 
 num :
 	| MINUS; INT { Int (~-$2) }
@@ -62,6 +68,7 @@ num :
 	| OVER { Div }
 	| MOD { Mod }
 	| TOTHEPOWER { Pow }
+	;
 
 arith_expr :
 	| expr; arith_binop; expr { Binop ($2, $1, $3) }
@@ -99,13 +106,14 @@ bool_expr :
 	| UNLOCKALL { Unlockall }
 	| CREATEREF { CreateRef }
 	| DEREF { Deref }
+	;
 
 unop_expr :
 	| unop; expr { Unop ($1, $2) }
 	| JOINALL { Unop (Joinall, None) }
 	| PRINT; LPAREN; expr; RPAREN { Unop (Print, $3) }
 	| CTHREAD; LPAREN; expr; RPAREN { Unop (CThread, $3) }
-
+	;
 
 expr_list :
 	| RBRACK { [] }
@@ -113,7 +121,9 @@ expr_list :
 	| expr; COMMA; expr_list { $1 :: $3 }
 	;
 
-lst : LBRACK; expr_list { List $2 }
+lst :
+	| LBRACK; expr_list { List $2 }
+	;
 
 data_struct :
 	| lst { $1 }
@@ -123,10 +133,12 @@ data_struct :
 
 func :
 	| FUN; STRING; PASSTO; expr { Fun ($2, $4) }
+	;
 
 app :
 	| func; expr { App ($1, $2) }
 	| var; LPAREN; expr; RPAREN { App ($1, $3) }
+	;
 
 constructs :
 	| IF; expr; THEN; expr; ELSE; expr { If ($2, $4, $6) }

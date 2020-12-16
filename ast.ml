@@ -1,3 +1,4 @@
+(** [binop] is the type of binary operators. *)
 type binop =
   | Add
   | Sub
@@ -17,6 +18,8 @@ type binop =
   | Proj
   | RefAssign
 
+(** [unop] is the type of unary operators. *)
+
 type unop =
   | Not
   | Print
@@ -30,6 +33,7 @@ type unop =
   | CreateRef
   | Deref
 
+(** [expr] is the type of expressions. *)
 type expr = 
   | Var of string
   | Int of int
@@ -49,6 +53,7 @@ type expr =
   | Seq of expr * expr
   | Thunk of (expr -> expr)
 
+(** [string_of_binop bop] is the string representation of binary operator [bop]. *)
 let string_of_binop = function
   | Add -> "Add"
   | Sub -> "Sub"
@@ -68,6 +73,7 @@ let string_of_binop = function
   | Proj -> "Proj"
   | RefAssign -> "RefAssign"
 
+(** [string_of_binop unop] is the string representation of unary operator [unop]. *)
 let string_of_unop = function
   | Not -> "Not"
   | Print -> "Print"
@@ -81,15 +87,15 @@ let string_of_unop = function
   | CreateRef -> "CreateRef"
   | Deref -> "Deref"
 
+(** [string_of_expr e] is the string representation of expression [e]. *)
 let rec string_of_expr = function
   | Var x -> "Var " ^ x
   | Int i -> "Int " ^ string_of_int i
   | Float f -> "Float " ^ string_of_float f
   | Bool b -> "Bool " ^ string_of_bool b
   | String s -> "String " ^ s
-  | Unop (op ,e) -> "Uniop (" ^ (string_of_unop op) ^ ", " ^ (string_of_expr e) ^ ")"
-  | Binop (op, e1, e2) -> "Binop (" ^ (string_of_binop op) ^ ", " ^
-                          (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
+  | Unop (op ,e) -> "Unop (" ^ (string_of_unop op) ^ ", " ^ (string_of_expr e) ^ ")"
+  | Binop (op, e1, e2) -> "Binop (" ^ (string_of_binop op) ^ ", " ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | If (e1, e2, e3) -> "If (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ", " ^ (string_of_expr e3) ^ ")"
   | Def (e1, e2) -> "Def (" ^ (string_of_expr e1) ^ ", " ^ (string_of_expr e2) ^ ")"
   | Fun (id, e) -> "Fun (" ^ id ^ " -> " ^ (string_of_expr e) ^ ")"
