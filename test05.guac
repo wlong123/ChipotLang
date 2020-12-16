@@ -1,6 +1,14 @@
 << two threads update a ref, uses joinall >>
 def l = ref [1] in
-def t1 = thread (lock l; l := [2]; unlock l) in
-def t2 = thread (lock l; l := [3]; unlock l) in
+def t1 = thread (
+  lock l;
+  l := [2];
+  unlock l
+) in
+def t2 = thread (
+  lock l;
+  l := [3];
+  unlock l
+) in
 joinall;
 print (!l)

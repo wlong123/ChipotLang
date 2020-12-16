@@ -1,8 +1,9 @@
-<< recursive fibonacci numbers: expected output is 144 >>
-def fib = fun n =>
-  if n <= 1 then n
-  else 
-    def n' = n in
-    fib (n - 1) + fib (n' - 2) 
+<< recursive Fibonacci numbers: expected output is 144 >>
+def fib =
+  fun n =>
+    if n <= 1 then n
+    else 
+      def n' = n in
+      fib (n - 1) + fib (n' - 2) 
 in
 fib (12)
