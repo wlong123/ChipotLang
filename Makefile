@@ -19,3 +19,6 @@ start:
 
 clean:
 	ocamlbuild -clean
+
+zip:
+	zip chipotlang.zip *.ml* *.md Makefile _tags .ocamlinit .merlin .gitignore *.guac
