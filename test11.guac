@@ -1,7 +1,0 @@
-def x = ref 0 in
-def inc_x = fun y => x := !x + 1 in
-inc_x (none);
-inc_x (none);
-def y = ref 2 in
-inc_x (none);
-!x - !y

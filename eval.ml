@@ -309,6 +309,16 @@ and eval_unop (op : unop) (e : expr) (s : store) (n : int) : (expr * store * int
         threads := (!max_tid, (v, s')) :: (!threads);
         Tid !max_tid, s', 0 (* Set to 0 to force re-scheduling *)
       end
+    | Head, List lst -> begin
+      match lst with
+      | [] -> List [], s', n'
+      | h :: t -> h, s', n'
+    end
+    | Tail, List lst -> begin
+      match lst with
+      | [] -> List [], s', n'
+      | h :: t -> List t, s', n'
+    end
     | CreateRef, _ -> Ref (ref v, Mutex.create ()), s', n'
     | Deref, Ref (r, _)  -> !r, s', n'
     | Not, _ -> raise (TypeError ("Cannot negate non-boolean: " ^ (string_of_expr v)))
@@ -318,6 +328,8 @@ and eval_unop (op : unop) (e : expr) (s : store) (n : int) : (expr * store * int
     | Lockall, _ -> raise (TypeError ("Cannot perform lockall on non-list: " ^ (string_of_expr v)))
     | Unlockall, _ -> raise (TypeError ("Cannot perform unlockall on non-list" ^ (string_of_expr v)))
     | Deref, _ -> raise (TypeError ("Cannot dereference non-reference" ^ (string_of_expr v)))
+    | Head, _ -> raise (TypeError ("Cannot call head on non-list: " ^ (string_of_expr v)))
+    | Tail, _ -> raise (TypeError ("Cannot call tail on non-list: " ^ (string_of_expr v)))
 
 (** [eval_binop op e1 e2 s n] is the result of evaluating [Binop (op, e1 e2)] in
     store [s] after [n] steps of computation.
@@ -467,6 +479,7 @@ let eval (e : expr) : expr =
     let k = fresh_id () in
     let cont = Fun (k, (Var k)) in
     let e', s', _ = eval_cps e cont s (pick_run_length ()) in
+    (* print_endline ("THREAD STOP: " ^ (string_of_int thread_to_run) ^ string_of_expr e'); *)
     if is_val e' then
       begin
         (if thread_to_run = main_tid then out := e' else ());

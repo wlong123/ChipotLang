@@ -1,18 +1,57 @@
-<< ten threads increment and decrement a shared variable WITH locks (related to test03.guac) >>
-def x = ref 0 in
-def inc_x = fun y =>
-  lock x;
-  x := !x + 1;
-  x := !x - 1;
-  x := !x + 1;
-  x := !x - 1;
-  x := !x + 1;
-  unlock x
+<< Variation of the reader-writer problem >>
+def maxlen = 5 in
+def len = ref 0 in
+def buffer = ref [] in
+def w1 = ref false in
+def w2 = ref false in
+def read = fun n => 
+    if !n then none 
+    else
+      lock (len);
+      (if !len > 0
+      then (
+          lock (buffer);
+          print ("READ"); 
+          print (hd (!buffer)); 
+          buffer := (tl (!buffer));
+          len := !len - 1;
+          n := true;
+          unlockall [buffer, len]
+          )
+      else 
+          unlock (len);
+          read (n)
+      )
 in
-def loop = fun n =>
-  if (n = 0) then none
-  else thread (inc_x (none)); loop (n - 1)
+def write = fun n => fun n2 =>
+    if !n then none 
+    else
+      lock (len);
+      (if !len < maxlen
+      then (
+          lock (buffer);
+          buffer := (n2 :: !buffer);
+          print ("WRITE");
+          print (1); 
+          len := !len + 1;
+          n := true;
+          unlockall [buffer, len]
+          )
+      else 
+          unlock (len);
+          write (n)
+      )
 in
-loop (10);
+thread (read(ref false));
+thread (read(ref false));
+thread (read(ref false));
+thread (read(ref false));
+thread (read(ref false));
+thread (write (ref false) (1));
+thread (write (ref false) (2));
+thread (write (ref false) (3));
+thread (write (ref false) (4));
+thread (write (ref false) (5));
 joinall;
-print (!x)
+print(!buffer)
+

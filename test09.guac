@@ -1,16 +1,16 @@
-<< 25 threads append their ID to a log, order of scheduling is non-deterministic >>
 def log = ref [] in
-def add_id_to_log = fun n =>
-  lock (log);
-  log := (n :: !log);
-  print (n);
-  none; none; none; none; none;
-  unlock (log)
-in
-def loop = fun n =>
+def fib = fun n =>
+  if n <= 1 then n
+  else 
+    def n' = n in
+    fib (n - 1) + fib (n' - 2) in
+def loop = fun n => 
   if (n = 0) then none
-  else thread (add_id_to_log (n)); loop (n - 1)
+  else
+    thread (lock (log); log := (fib (n) :: !log); unlock (log));
+    loop (n - 1)
 in
-loop (25);
+loop (5);
+loop (5);
 joinall;
 print (!log)

@@ -32,6 +32,8 @@ type unop =
   | CThread
   | CreateRef
   | Deref
+  | Head
+  | Tail
 
 (** [expr] is the type of expressions. *)
 type expr = 
@@ -86,6 +88,8 @@ let string_of_unop = function
   | CThread -> "CThread"
   | CreateRef -> "CreateRef"
   | Deref -> "Deref"
+  | Head -> "Head"
+  | Tail -> "Tail"
 
 (** [string_of_expr e] is the string representation of expression [e]. *)
 let rec string_of_expr = function

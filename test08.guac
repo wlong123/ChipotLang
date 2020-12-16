@@ -1,8 +1,16 @@
-<< two threads update two refs, uses lockall and unlockall >>
-def l1 = ref [1] in
-def l2 = ref [2] in
-def t1 = thread (lockall [l1, l2]; l1 := [3]; unlockall [l1, l2]) in
-def t2 = thread (lockall [l1, l2]; l2 := [4]; unlockall [l1, l2]) in
+<< 25 threads append their ID to a log, order of scheduling is non-deterministic >>
+def log = ref [] in
+def add_id_to_log = fun n =>
+  lock (log);
+  log := (n :: !log);
+  print (n);
+  none; none; none; none; none;
+  unlock (log)
+in
+def loop = fun n =>
+  if (n = 0) then none
+  else thread (add_id_to_log (n)); loop (n - 1)
+in
+loop (25);
 joinall;
-print (!l1);
-print (!l2)
+print (!log)

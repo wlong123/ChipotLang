@@ -62,6 +62,8 @@ rule read =
   | "unlock" { UNLOCK }
   | "unlockall" { UNLOCKALL }
   | "none" { NONE }
+  | "hd" { HEAD }
+  | "tl" { TAIL }
   | "!" { DEREF }
   | ":=" { ASSIGN }
   | "ref" { CREATEREF }
